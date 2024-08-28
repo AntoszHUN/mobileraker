@@ -8,10 +8,14 @@ import 'package:common/service/firebase/remote_config.dart';
 import 'package:common/service/moonraker/klippy_service.dart';
 import 'package:common/service/payment_service.dart';
 import 'package:common/service/selected_machine_service.dart';
-import 'package:common/ui/components/drawer/nav_drawer_view.dart';
+import 'package:common/ui/components/nav/nav_drawer_view.dart';
+import 'package:common/ui/components/nav/nav_rail_view.dart';
+import 'package:common/ui/components/responsive_limit.dart';
 import 'package:common/ui/components/supporter_only_feature.dart';
 import 'package:common/ui/components/switch_printer_app_bar.dart';
 import 'package:common/util/extensions/async_ext.dart';
+import 'package:common/util/extensions/build_context_extension.dart';
+import 'package:common/util/extensions/object_extension.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -36,14 +40,20 @@ class SpoolmanPage extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      appBar: _AppBar(),
-      drawer: NavigationDrawerWidget(),
-      bottomNavigationBar: _BottomNav(),
+    Widget body = const _Body();
+
+    if (context.isLargerThanCompact) {
+      body = NavigationRailView(page: body);
+    }
+
+    return Scaffold(
+      appBar: const _AppBar(),
+      drawer: const NavigationDrawerWidget(),
+      bottomNavigationBar: const _BottomNav().unless(context.isLargerThanCompact),
       // floatingActionButton: _Fab(),
 
       //ToDo: Add ConnectionStateView !!!!
-      body: _Body(),
+      body: body,
       // body: _SpoolTab(),
     );
   }
@@ -77,14 +87,14 @@ class _BottomNav extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    var selectedMachine = ref.watch(selectedMachineProvider);
+    final selectedMachine = ref.watch(selectedMachineProvider);
 
     if (ref.watch(selectedMachineProvider).valueOrNull == null) {
       return const SizedBox.shrink();
     }
 
-    var controller = ref.watch(_spoolmanPageControllerProvider(selectedMachine.value!.uuid).notifier);
-    var currentIndex = ref.watch(_spoolmanPageControllerProvider(selectedMachine.value!.uuid));
+    final controller = ref.watch(_spoolmanPageControllerProvider(selectedMachine.value!.uuid).notifier);
+    final currentIndex = ref.watch(_spoolmanPageControllerProvider(selectedMachine.value!.uuid));
 
     return BottomNavigationBar(
       showSelectedLabels: true,
@@ -116,7 +126,7 @@ class _Body extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     var isSupporter = ref.watch(isSupporterProvider);
 
-    if (!isSupporter && ref.watch(remoteConfigProvider).spoolmanPageSupporterOnly) {
+    if (!isSupporter && ref.watch(remoteConfigBoolProvider('spoolman_page_pay'))) {
       return Center(
         child: SupporterOnlyFeature(text: const Text('components.supporter_only_feature.spoolman_page').tr()),
       );
@@ -125,19 +135,19 @@ class _Body extends ConsumerWidget {
     return MachineConnectionGuard(
       onConnected: (BuildContext context, String machineUUID) {
         return Consumer(builder: (context, ref, child) {
-          var hasSpoolman =
+          final hasSpoolman =
               ref.watch(klipperProvider(machineUUID).selectAs((value) => value.hasSpoolmanComponent)).value!;
-          var page = ref.watch(_spoolmanPageControllerProvider(machineUUID));
-          var controller = ref.watch(_spoolmanPageControllerProvider(machineUUID).notifier);
+          final page = ref.watch(_spoolmanPageControllerProvider(machineUUID));
+          final controller = ref.watch(_spoolmanPageControllerProvider(machineUUID).notifier);
 
-          var themeData = Theme.of(context);
+          final themeData = Theme.of(context);
           if (!hasSpoolman) {
             return Padding(
               padding: const EdgeInsets.all(8.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.warning_amber, size: 50),
+                  const Icon(Icons.warning_amber, size: 50),
                   const SizedBox(height: 8),
                   Text.rich(
                     TextSpan(
@@ -169,9 +179,8 @@ class _Body extends ConsumerWidget {
               ),
             );
           }
-          var theme = themeData;
-          var borderSize = BorderSide(width: 0.5, color: theme.colorScheme.primary);
-          var list = switch (page) {
+
+          final list = switch (page) {
             1 => SpoolmanScrollPagination(
                 machineUUID: machineUUID,
                 type: SpoolmanListType.filaments,
@@ -189,47 +198,71 @@ class _Body extends ConsumerWidget {
               ),
           };
 
-          return Container(
-            margin: const EdgeInsets.all(4.0),
-            decoration: BoxDecoration(
-              // color: Colors.yellow,
-              color: theme.colorScheme.surface,
-              border: Border(bottom: borderSize, left: borderSize, right: borderSize),
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(10)),
-              boxShadow: [
-                if (theme.brightness == Brightness.light)
-                  const BoxShadow(
-                    color: Colors.grey,
-                    offset: Offset(0.0, 4.0), //(x,y)
-                    blurRadius: 1.0,
-                  ),
-              ],
-            ),
+          return ResponsiveLimit(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(color: theme.colorScheme.primary),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-                    child: Text(
-                      switch (page) {
-                        1 => 'pages.spoolman.filament',
-                        2 => 'pages.spoolman.vendor',
-                        _ => 'pages.spoolman.spool',
-                      },
-                      style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onPrimary),
-                    ).plural(2),
-                  ),
-                ),
+                if (context.isLargerThanCompact) _Header(machineUUID: machineUUID),
                 Expanded(
-                  child: list,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: list,
+                  ),
                 ),
               ],
             ),
           );
         });
       },
+    );
+  }
+}
+
+class _Header extends HookConsumerWidget {
+  const _Header({super.key, required this.machineUUID});
+
+  final String machineUUID;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controller = ref.watch(_spoolmanPageControllerProvider(machineUUID).notifier);
+    final page = ref.watch(_spoolmanPageControllerProvider(machineUUID));
+
+    final tabController = useTabController(initialLength: 3);
+
+    if (tabController.index != page && !tabController.indexIsChanging) {
+      tabController.index = page;
+    }
+
+    final themeData = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TabBar(
+          onTap: controller.onBottomItemTapped,
+          controller: tabController,
+          // labelStyle: themeData.textTheme.labelLarge,
+          indicatorColor: themeData.colorScheme.primary,
+          labelColor: themeData.colorScheme.primary,
+          unselectedLabelColor: themeData.disabledColor,
+          enableFeedback: true,
+          tabs: [
+            Tab(
+              icon: const Icon(Icons.spoke_outlined),
+              text: plural('pages.spoolman.spool', 2),
+            ),
+            Tab(
+              icon: const Icon(Icons.color_lens_outlined),
+              text: plural('pages.spoolman.filament', 2),
+            ),
+            Tab(
+              icon: const Icon(Icons.factory_outlined),
+              text: plural('pages.spoolman.vendor', 2),
+            ),
+          ],
+        ),
+        if (!themeData.useMaterial3) Divider(height: 1, thickness: 1, color: themeData.colorScheme.primary),
+      ],
     );
   }
 }

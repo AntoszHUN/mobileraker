@@ -3,7 +3,9 @@
  * All rights reserved.
  */
 
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:common/data/dto/config/config_file_object_identifiers_enum.dart';
+import 'package:common/data/dto/machine/fans/controller_fan.dart';
 import 'package:common/data/dto/machine/fans/fan.dart';
 import 'package:common/data/dto/machine/fans/generic_fan.dart';
 import 'package:common/data/dto/machine/fans/named_fan.dart';
@@ -15,7 +17,7 @@ import 'package:common/service/setting_service.dart';
 import 'package:common/service/ui/dialog_service_interface.dart';
 import 'package:common/ui/components/async_guard.dart';
 import 'package:common/ui/components/skeletons/card_title_skeleton.dart';
-import 'package:common/ui/components/skeletons/card_with_skeleton.dart';
+import 'package:common/ui/components/skeletons/horizontal_scroll_skeleton.dart';
 import 'package:common/util/extensions/async_ext.dart';
 import 'package:common/util/extensions/ref_extension.dart';
 import 'package:common/util/logger.dart';
@@ -41,6 +43,14 @@ part 'fans_card.g.dart';
 
 class FansCard extends HookConsumerWidget {
   const FansCard({super.key, required this.machineUUID});
+
+  static Widget preview() {
+    return const _Preview();
+  }
+
+  static Widget loading() {
+    return const _FansCardLoading();
+  }
 
   final String machineUUID;
 
@@ -68,6 +78,23 @@ class FansCard extends HookConsumerWidget {
   }
 }
 
+class _Preview extends HookWidget {
+  static const String _machineUUID = 'preview';
+
+  const _Preview({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    useAutomaticKeepAlive();
+    return ProviderScope(
+      overrides: [
+        _fansCardControllerProvider(_machineUUID).overrideWith(_FansCardPreviewController.new),
+      ],
+      child: const FansCard(machineUUID: _machineUUID),
+    );
+  }
+}
+
 class _FansCardLoading extends StatelessWidget {
   const _FansCardLoading({super.key});
 
@@ -82,44 +109,11 @@ class _FansCardLoading extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const CardTitleSkeleton(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Flexible(
-                        child: CardWithSkeleton(
-                          contentTextStyles: [
-                            themeData.textTheme.bodySmall,
-                            themeData.textTheme.headlineSmall,
-                          ],
-                        ),
-                      ),
-                      Flexible(
-                        child: CardWithSkeleton(
-                          contentTextStyles: [
-                            themeData.textTheme.bodySmall,
-                            themeData.textTheme.headlineSmall,
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 5),
-                    child: SizedBox(
-                      width: 30,
-                      height: 11,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            HorizontalScrollSkeleton(
+              contentTextStyles: [
+                themeData.textTheme.bodySmall,
+                themeData.textTheme.headlineSmall,
+              ],
             ),
             const SizedBox(height: 8),
           ],
@@ -205,7 +199,13 @@ class _Fan extends ConsumerWidget {
       _ => null,
     };
 
-    return _FanCard(name: name, speed: fan.speed, onTap: onTap);
+    VoidCallback? onLongTap = switch (fan) {
+      GenericFan() when klippyCanReceiveCommands => () => controller.onToggleFan(fan),
+      PrintFan() when klippyCanReceiveCommands => () => controller.onPrintFan(fan),
+      _ => null,
+    };
+
+    return _FanCard(name: name, speed: fan.speed, rpm: fan.rpm, onTap: onTap, onLongTap: onLongTap);
   }
 }
 
@@ -214,13 +214,17 @@ class _FanCard extends StatelessWidget {
 
   final String name;
   final double speed;
+  final double? rpm;
   final VoidCallback? onTap;
+  final VoidCallback? onLongTap;
 
   const _FanCard({
     super.key,
     required this.name,
     required this.speed,
+    this.rpm,
     this.onTap,
+    this.onLongTap,
   });
 
   @override
@@ -230,30 +234,42 @@ class _FanCard extends StatelessWidget {
           ? const Text('pages.dashboard.control.fan_card.static_fan_btn').tr()
           : const Text('general.set').tr(),
       onTap: onTap,
+      onLongTap: onLongTap,
       builder: (context) {
         var themeData = Theme.of(context);
 
         var numberFormat = NumberFormat.percentPattern(context.locale.toStringWithSeparator());
+
+        final tachFormat = NumberFormat.decimalPattern(context.locale.toStringWithSeparator());
 
         return Tooltip(
           message: name,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: themeData.textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    speed > 0 ? numberFormat.format(speed) : 'general.off'.tr(),
-                    style: themeData.textTheme.headlineSmall,
-                  ),
-                ],
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AutoSizeText(
+                      name,
+                      minFontSize: 8,
+                      style: themeData.textTheme.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      speed > 0 ? numberFormat.format(speed) : 'general.off'.tr(),
+                      style: themeData.textTheme.headlineSmall,
+                    ),
+                    if (rpm != null)
+                      Text(
+                        '${tachFormat.format(rpm)} rpm',
+                        maxLines: 1,
+                        style: themeData.textTheme.bodySmall,
+                      ),
+                  ],
+                ),
               ),
               speed > 0 ? const SpinningFan(size: icoSize) : const Icon(FlutterIcons.fan_off_mco, size: icoSize),
             ],
@@ -344,8 +360,8 @@ class _FansCardController extends _$FansCardController {
     var resp = await _dialogService.show(DialogRequest(
       type: _dialogMode,
       title: tr('dialogs.fan_speed.title', args: [tr('pages.dashboard.control.fan_card.part_fan')]),
-      cancelBtn: tr('general.cancel'),
-      confirmBtn: tr('general.confirm'),
+      dismissLabel: tr('general.cancel'),
+      actionLabel: tr('general.confirm'),
       data: NumberEditDialogArguments(
         current: fan.speed * 100.round(),
         min: 0,
@@ -365,8 +381,8 @@ class _FansCardController extends _$FansCardController {
     var resp = await _dialogService.show(DialogRequest(
       type: _dialogMode,
       title: tr('dialogs.fan_speed.title', args: [beautifyName(fan.name)]),
-      cancelBtn: tr('general.cancel'),
-      confirmBtn: tr('general.confirm'),
+      dismissLabel: tr('general.cancel'),
+      actionLabel: tr('general.confirm'),
       data: NumberEditDialogArguments(
         current: fan.speed * 100.round(),
         min: 0,
@@ -378,6 +394,53 @@ class _FansCardController extends _$FansCardController {
       num v = resp.data;
       _printerService.genericFanFan(fan.name, v.toDouble() / 100);
     }
+  }
+
+  void onToggleFan(GenericFan fan) {
+    if (!state.hasValue) return;
+
+    if (fan.speed > 0) {
+      _printerService.genericFanFan(fan.name, 0);
+    } else {
+      _printerService.genericFanFan(fan.name, 1);
+    }
+  }
+
+  void onPrintFan(PrintFan fan) {
+    if (!state.hasValue) return;
+
+    if (fan.speed > 0) {
+      _printerService.partCoolingFan(0);
+    } else {
+      _printerService.partCoolingFan(1);
+    }
+  }
+}
+
+class _FansCardPreviewController extends _FansCardController {
+  @override
+  Stream<_Model> build(String machineUUID) {
+    logger.i('Rebuilding fansCardController for $machineUUID');
+
+    state = const AsyncValue.data(_Model(
+      klippyCanReceiveCommands: true,
+      fans: [
+        PrintFan(speed: 0),
+        ControllerFan(name: 'Preview Fan', speed: 0),
+      ],
+    ));
+
+    return const Stream.empty();
+  }
+
+  @override
+  Future<void> onEditPartFan(PrintFan fan) async {
+    // Do nothing preview
+  }
+
+  @override
+  Future<void> onEditGenericFan(GenericFan fan) async {
+    // Do nothing preview
   }
 }
 

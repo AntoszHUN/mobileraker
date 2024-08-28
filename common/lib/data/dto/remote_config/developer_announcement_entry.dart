@@ -22,9 +22,10 @@ class DeveloperAnnouncementEntry with _$DeveloperAnnouncementEntry {
       required String title,
     required String body,
     @Default(1) int showCount,
+    String? link,
   }) = _DeveloperAnnouncementEntry;
 
-  String get hash => '$title$body'.sha256digest().base64();
+  String get hash => sha256.string('$title$body').base64();
 
   factory DeveloperAnnouncementEntry.fromJson(Map<String, dynamic> json) => _$DeveloperAnnouncementEntryFromJson(json);
 }

@@ -5,16 +5,19 @@
 
 import 'dart:async';
 
+import 'package:common/common.dart';
 import 'package:common/data/dto/files/generic_file.dart';
+import 'package:common/data/model/file_operation.dart';
 import 'package:common/exceptions/mobileraker_exception.dart';
 import 'package:common/service/app_router.dart';
 import 'package:common/service/moonraker/file_service.dart';
 import 'package:common/service/moonraker/klippy_service.dart';
 import 'package:common/service/ui/snackbar_service_interface.dart';
-import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:share_plus/share_plus.dart';
 
 part 'config_file_details_controller.freezed.dart';
 part 'config_file_details_controller.g.dart';
@@ -60,13 +63,50 @@ class ConfigFileDetailsController extends StateNotifier<ConfigDetailPageState> {
     }
   }
 
+  void share(BuildContext ctx) {
+    state.config.whenData((config) async {
+      state = state.copyWith(isSharing: true);
+
+      try {
+        final file = ref.read(configFileProvider);
+
+        var result = await ref.read(fileServiceSelectedProvider).downloadFile(filePath: file.absolutPath).last;
+        var downloadFile = result as FileDownloadComplete;
+
+        final box = ctx.findRenderObject() as RenderBox?;
+        final pos = box!.localToGlobal(Offset.zero) & box.size;
+
+        Share.shareXFiles(
+          [XFile(downloadFile.file.path, mimeType: 'text/plain', name: file.name)],
+          subject: 'Config file: ${file.name}',
+          sharePositionOrigin: pos,
+        ).ignore();
+      } catch (e) {
+        ref.read(snackBarServiceProvider).show(SnackBarConfig(
+              type: SnackbarType.error,
+              title: 'Error while downloading file for sharing.',
+              message: e.toString(),
+            ));
+      } finally {
+        if (mounted) {
+          state = state.copyWith(isSharing: false);
+        }
+      }
+    });
+  }
+
   Future<void> onSaveTapped(String code) async {
     state = state.copyWith(isUploading: true);
     try {
-      await fileService.uploadAsFile(
-        ref.read(configFileProvider).absolutPath,
-        code,
-      );
+      final file = ref.read(configFileProvider);
+      final content = MultipartFile.fromString(code, filename: file.relativeToRoot);
+
+      await fileService
+          .uploadFile(
+            file.absolutPath,
+            content,
+          )
+          .last;
       ref.read(goRouterProvider).pop();
     } on DioException catch (e) {
       snackBarService.show(SnackBarConfig(
@@ -82,26 +122,8 @@ class ConfigFileDetailsController extends StateNotifier<ConfigDetailPageState> {
   }
 
   Future<void> onSaveAndRestartTapped(String code) async {
-    state = state.copyWith(isUploading: true);
-
-    try {
-      await fileService.uploadAsFile(
-        ref.read(configFileProvider).absolutPath,
-        code,
-      );
-      klippyService.restartMCUs();
-      ref.read(goRouterProvider).pop();
-    } on DioException catch (e) {
-      snackBarService.show(SnackBarConfig(
-        type: SnackbarType.error,
-        title: 'Http-Error',
-        message: 'Could not save File:.\n${e.message}',
-      ));
-    } finally {
-      if (mounted) {
-        state = state.copyWith(isUploading: false);
-      }
-    }
+    await onSaveTapped(code);
+    klippyService.restartMCUs();
   }
 }
 
@@ -110,5 +132,6 @@ class ConfigDetailPageState with _$ConfigDetailPageState {
   const factory ConfigDetailPageState({
     @Default(AsyncValue.loading()) AsyncValue<String> config,
     @Default(false) bool isUploading,
+    @Default(false) bool isSharing,
   }) = _ConfigDetailPageState;
 }

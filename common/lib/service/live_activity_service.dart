@@ -135,12 +135,16 @@ class LiveActivityService {
         var listenersToClose = _printerListeners.keys.where((e) => machines.any((m) => m.uuid == e));
         var listenersToOpen = machines.whereNot((e) => _printerListeners.containsKey(e.uuid));
 
+        var closed = 0;
         for (var uuid in listenersToClose) {
+          closed++;
           _printerListeners[uuid]?.close();
           _printerListeners.remove(uuid);
         }
 
+        var opened = 0;
         for (var machine in listenersToOpen) {
+          opened++;
           _printerListeners[machine.uuid] = ref.listen(
             printerProvider(machine.uuid),
             (_, nextP) => nextP.whenData((value) => _handlePrinterData(machine.uuid, value)),
@@ -149,7 +153,7 @@ class LiveActivityService {
         }
 
         logger.i(
-            'Added ${listenersToOpen.length} new printerData listeners and removed ${listenersToClose.length} printer listeners in the LiveActivityService');
+            'Added $opened new printerData listeners and removed $closed printer listeners in the LiveActivityService');
       }),
       fireImmediately: true,
     );
@@ -199,10 +203,12 @@ class LiveActivityService {
       // final hasEtaChange = isPrinting && printer.eta != null && notification.eta != printer.eta;
       if (!hasProgressChange && !hasStateChange && !hasFileChange && !clearLiveActivity) return;
       logger.i('LiveActivity Passed state and progress check. $printState, ${printer.printProgress}');
+      final etaSources = _settingsService.readList<String>(AppSettingKeys.etaSources).toSet();
+
       await _notificationsRepository.save(
         Notification(machineUuid: machineUUID)
           ..progress = printer.printProgress
-          ..eta = printer.eta
+          ..eta = printer.calcEta(etaSources)
           ..file = printer.currentFile?.name
           ..printState = printer.print.state,
       );
@@ -251,11 +257,12 @@ class LiveActivityService {
     _updateLiveActivityLocks[machineUUID] = Completer();
     try {
       var themePack = ref.read(themeServiceProvider).activeTheme.themePack;
+      final etaSources = _settingsService.readList<String>(AppSettingKeys.etaSources).toSet();
       Map<String, dynamic> data = {
         'progress': printer.printProgress,
         'state': printer.print.state.name,
         'file': printer.currentFile?.name ?? tr('general.unknown'),
-        'eta': printer.eta?.secondsSinceEpoch ?? -1,
+        'eta': printer.calcEta(etaSources)?.secondsSinceEpoch ?? -1,
 
         // Not sure yet if I want to use this
         'printStartTime':
@@ -268,7 +275,7 @@ class LiveActivityService {
         'eta_label': tr('pages.dashboard.general.print_card.eta'),
         'elapsed_label': tr('pages.dashboard.general.print_card.elapsed'),
         'remaining_label': tr('pages.dashboard.general.print_card.remaining'),
-        'completed_label': tr('general.completed'),
+        for (var state in PrintState.values) '${state.name}_label': state.displayName,
       };
 
       var isPrinting = {PrintState.printing, PrintState.paused}.contains(printer.print.state);
@@ -320,44 +327,17 @@ class LiveActivityService {
 
   Future<String?> _updateOrCreateLiveActivity(Map<String, dynamic> activityData, Machine machine,
       [bool createIfMissing = true]) async {
-    // Check if an activity is already running for this machine and if we can still address it
-    if (_machineLiveActivityMap.containsKey(machine.uuid)) {
-      var activityEntry = _machineLiveActivityMap[machine.uuid]!;
+    // API handles both updating and creating
+    var activityId =
+        await _liveActivityAPI.createOrUpdateActivity(machine.uuid, activityData, removeWhenAppIsKilled: true);
 
-      LiveActivityState? activityState = await _liveActivityAPI.getActivityState(activityEntry.id);
-
-      logger.i('LiveActivityState for ${machine.name} is $activityState');
-
-      // If the activity is still active we can update it and return
-      if (activityState == LiveActivityState.active) {
-        logger.i('Can update LiveActivity for ${machine.name} with id: $activityEntry');
-        await _liveActivityAPI.updateActivity(activityEntry.id, activityData);
-        return activityEntry.id;
-      }
-      // Okay we can not update the activity remove and end it
-      await _liveActivityAPI.endActivity(activityEntry.id);
-      _machineLiveActivityMap.remove(machine.uuid);
-    }
-
-    // If we are not allowed to create a new activity we can just return null
-    if (!createIfMissing) {
-      logger.i('Not allowed to create a new LiveActivity for ${machine.name} since createIfMissing is false');
-      return null;
-    }
-
-    if (_machineLiveActivityMap.length >= 5) {
-      logger.i('Not allowed to create a new LiveActivity for ${machine.name} since we are at the limit of 5');
-      return null;
-    }
-
-    // Okay I guess we need to create a new activity for this machine
-    var activityId = await _liveActivityAPI.createActivity(activityData, removeWhenAppIsKilled: true);
-    if (activityId != null) {
+    if (activityId case String()) {
       _machineLiveActivityMap[machine.uuid] = _ActivityEntry(activityId);
+      logger.i('Created new LiveActivity for ${machine.name} with id: $activityId');
+      return activityId;
     }
-    logger.i('Created new LiveActivity for ${machine.name} with id: $activityId');
-    _backupLiveActivityMap();
-    return activityId;
+    logger.i('Updated LiveActivity for ${machine.name}');
+    return null;
   }
 
   _endLiveActivity(Machine machine) {

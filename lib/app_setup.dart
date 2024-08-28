@@ -26,6 +26,7 @@ import 'package:common/service/firebase/analytics.dart';
 import 'package:common/service/firebase/auth.dart';
 import 'package:common/service/firebase/remote_config.dart';
 import 'package:common/service/machine_service.dart';
+import 'package:common/service/misc_providers.dart';
 import 'package:common/service/notification_service.dart';
 import 'package:common/service/payment_service.dart';
 import 'package:common/util/extensions/logging_extension.dart';
@@ -254,6 +255,12 @@ initializeAvailableMachines(Ref ref) async {
 
 @riverpod
 Stream<StartUpStep> warmupProvider(WarmupProviderRef ref) async* {
+  logger.i('*****************************');
+  logger.i('Mobileraker is warming up...');
+
+  logger.i('Mobileraker Version: ${await ref.read(versionInfoProvider.future)}');
+  logger.i('*****************************');
+
   // Firebase stuff
   yield StartUpStep.firebaseCore;
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -275,12 +282,16 @@ Stream<StartUpStep> warmupProvider(WarmupProviderRef ref) async* {
   await FirebaseAppCheck.instance.activate();
 
   yield StartUpStep.firebaseRemoteConfig;
-  await ref.read(remoteConfigProvider).initialize();
+  await ref.read(remoteConfigInstanceProvider).initialize();
   if (kDebugMode) {
     FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(false);
   }
 
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterError;
+  FlutterError.onError = (FlutterErrorDetails details) {
+    if (!kDebugMode)
+      logger.e('FlutterError caught by FlutterError.onError (${details.library})', details.exception, details.stack);
+    FirebaseCrashlytics.instance.recordFlutterError(details).ignore();
+  };
   PlatformDispatcher.instance.onError = (error, stack) {
     FirebaseCrashlytics.instance.recordError(error, stack).ignore();
     return true;

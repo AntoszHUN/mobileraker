@@ -3,6 +3,7 @@
  * All rights reserved.
  */
 
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:common/data/dto/machine/print_state_enum.dart';
 import 'package:common/data/dto/power/power_device.dart';
 import 'package:common/data/enums/power_state_enum.dart';
@@ -14,7 +15,7 @@ import 'package:common/service/setting_service.dart';
 import 'package:common/ui/components/async_guard.dart';
 import 'package:common/ui/components/simple_error_widget.dart';
 import 'package:common/ui/components/skeletons/card_title_skeleton.dart';
-import 'package:common/ui/components/skeletons/card_with_skeleton.dart';
+import 'package:common/ui/components/skeletons/horizontal_scroll_skeleton.dart';
 import 'package:common/util/extensions/async_ext.dart';
 import 'package:common/util/extensions/ref_extension.dart';
 import 'package:common/util/logger.dart';
@@ -36,6 +37,14 @@ part 'power_api_card.g.dart';
 
 class PowerApiCard extends HookConsumerWidget {
   const PowerApiCard({super.key, required this.machineUUID});
+
+  static Widget preview() {
+    return const _Preview();
+  }
+
+  static Widget loading() {
+    return const _PowerApiCardLoading();
+  }
 
   final String machineUUID;
 
@@ -81,6 +90,23 @@ class PowerApiCard extends HookConsumerWidget {
   }
 }
 
+class _Preview extends HookWidget {
+  static const String _machineUUID = 'preview';
+
+  const _Preview({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    useAutomaticKeepAlive();
+    return ProviderScope(
+      overrides: [
+        _powerApiCardControllerProvider(_machineUUID).overrideWith(_PowerApiCardPreviewController.new),
+      ],
+      child: const PowerApiCard(machineUUID: _machineUUID),
+    );
+  }
+}
+
 class _PowerApiCardLoading extends StatelessWidget {
   const _PowerApiCardLoading({super.key});
 
@@ -95,44 +121,11 @@ class _PowerApiCardLoading extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const CardTitleSkeleton(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Flexible(
-                        child: CardWithSkeleton(
-                          contentTextStyles: [
-                            themeData.textTheme.bodySmall,
-                            themeData.textTheme.headlineSmall,
-                          ],
-                        ),
-                      ),
-                      Flexible(
-                        child: CardWithSkeleton(
-                          contentTextStyles: [
-                            themeData.textTheme.bodySmall,
-                            themeData.textTheme.headlineSmall,
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 5),
-                    child: SizedBox(
-                      width: 30,
-                      height: 11,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            HorizontalScrollSkeleton(
+              contentTextStyles: [
+                themeData.textTheme.bodySmall,
+                themeData.textTheme.headlineSmall,
+              ],
             ),
             const SizedBox(height: 8),
           ],
@@ -170,8 +163,11 @@ class _PowerDeviceCard extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            AutoSizeText(
               beautifyName(powerDevice.name),
+              minFontSize: 8,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: themeData.textTheme.bodySmall,
             ),
             Text(
@@ -273,6 +269,35 @@ class _PowerApiCardController extends _$PowerApiCardController {
 
   Future<PowerState> updateDeviceState(PowerDevice device, PowerState state) async {
     return _powerService.setDeviceStatus(device.name, state);
+  }
+}
+
+class _PowerApiCardPreviewController extends _PowerApiCardController {
+  @override
+  Future<_Model> build(String machineUUID) {
+    const model = _Model(
+      devices: [
+        PowerDevice(name: 'Preview Device', status: PowerState.on, type: PowerDeviceType.gpio),
+        PowerDevice(name: 'Preview Pi', status: PowerState.off, type: PowerDeviceType.mqtt),
+      ],
+      isPrinting: false,
+    );
+    state = const AsyncValue.data(model);
+    return Future.value(model);
+  }
+
+  @override
+  Future<PowerState> updateDeviceState(PowerDevice device, PowerState state) async {
+    // Some fake data processing
+    await Future.delayed(const Duration(milliseconds: 100));
+    final cModel = this.state.requireValue;
+
+    final uModel = cModel.copyWith(
+        devices: cModel.devices.map((d) => d.name == device.name ? d.copyWith(status: state) : d).toList());
+
+    this.state = AsyncValue.data(uModel);
+
+    return state;
   }
 }
 

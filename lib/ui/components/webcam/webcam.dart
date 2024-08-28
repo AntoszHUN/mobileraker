@@ -10,7 +10,6 @@ import 'package:common/network/jrpc_client_provider.dart';
 import 'package:common/network/json_rpc_client.dart';
 import 'package:common/service/payment_service.dart';
 import 'package:common/ui/components/supporter_only_feature.dart';
-import 'package:common/util/logger.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -32,6 +31,7 @@ class Webcam extends HookConsumerWidget {
     this.imageBuilder,
     this.showFpsIfAvailable = false,
     this.showRemoteIndicator = true,
+    this.onHidePressed,
   });
   final Machine machine;
   final WebcamInfo webcamInfo;
@@ -39,6 +39,7 @@ class Webcam extends HookConsumerWidget {
   final ImageBuilder? imageBuilder;
   final bool showFpsIfAvailable;
   final bool showRemoteIndicator;
+  final VoidCallback? onHidePressed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -86,7 +87,7 @@ class Webcam extends HookConsumerWidget {
         ),
     ];
 
-    logger.wtf('webcamInfo.service: ${modifiedStack.length}');
+    // logger.wtf('webcamInfo.service: ${modifiedStack.length}');
 
     switch (webcamInfo.service) {
       case WebcamServiceType.mjpegStreamer:
@@ -98,15 +99,18 @@ class Webcam extends HookConsumerWidget {
           imageBuilder: imageBuilder,
           showFps: showFpsIfAvailable,
           stackChild: modifiedStack,
+          onHidePressed: onHidePressed,
         );
 
       case WebcamServiceType.webRtcGo2Rtc:
       case WebcamServiceType.webRtcCamStreamer:
+      case WebcamServiceType.webRtcMediaMtx:
         return WebcamWebRtc(
           machine: machine,
           webcamInfo: webcamInfo,
           stackContent: modifiedStack,
           imageBuilder: imageBuilder,
+          onHidePressed: onHidePressed,
         );
       default:
         return Text(

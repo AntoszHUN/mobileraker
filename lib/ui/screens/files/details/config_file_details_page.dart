@@ -22,6 +22,7 @@ import 'package:progress_indicators/progress_indicators.dart';
 
 class ConfigFileDetailPage extends ConsumerWidget {
   const ConfigFileDetailPage({super.key, required this.file});
+
   final GenericFile file;
 
   @override
@@ -51,19 +52,28 @@ class _ConfigFileDetail extends HookConsumerWidget {
     );
 
     return Scaffold(
+      backgroundColor: atomOneDarkTheme['root']!.backgroundColor,
       appBar: AppBar(
         title: Text(file.name, overflow: TextOverflow.fade),
-        actions: const [
+        actions: [
           // IconButton(onPressed: null, icon: Icon(Icons.live_help_outlined)),
           // IconButton(onPressed: null, icon: Icon(Icons.search))
+          Consumer(
+            builder: (ctx, ref, _) {
+              final controller = ref.watch(configFileDetailsControllerProvider.notifier);
+              final canShare = ref.watch(configFileDetailsControllerProvider
+                  .select((s) => !s.isSharing && !s.isUploading && s.config.hasValue));
+
+              return IconButton(
+                onPressed: canShare ? () => controller.share(ctx) : null,
+                icon: const Icon(Icons.share),
+              );
+            },
+          ),
         ],
       ),
       body: Column(
-        children: [
-          Expanded(
-            child: _Editor(codeController: codeController),
-          ),
-        ],
+        children: [Expanded(child: _Editor(codeController: codeController))],
       ),
       floatingActionButton: (ref.watch(configFileDetailsControllerProvider.select((value) => value.config)).hasValue)
           ? _Fab(codeController: codeController)
@@ -152,9 +162,8 @@ class _Fab extends ConsumerWidget {
                 backgroundColor: themeData.colorScheme.primaryContainer,
                 foregroundColor: themeData.colorScheme.onPrimaryContainer,
                 label: 'Save',
-                onTap: () => ref
-                    .read(configFileDetailsControllerProvider.notifier)
-                    .onSaveTapped(codeController.value.text),
+                onTap: () =>
+                    ref.read(configFileDetailsControllerProvider.notifier).onSaveTapped(codeController.value.text),
               ),
               if (!{PrintState.paused, PrintState.printing}.contains(ref.watch(
                 printerSelectedProvider.select((value) => value.valueOrFullNull?.print.state),

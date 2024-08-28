@@ -1,5 +1,127 @@
 # Mobileraker - Changelog
 
+## [2.7.2] - 2024-08-26
+
+### Enhancements
+
+- **Revamped File Manager**: Redesigned the file manager for a more intuitive and user-friendly experience. Users can
+  now easily navigate through files and folders, create new folders, upload files, and delete files or folders. The file
+  manager also supports selecting multiple files and moving them to different folders.
+
+- **Collapsible Macros**: The macro group card is now limited to a maximum of 3 rows. If this limit is exceeded, a
+  button will be provided to show all macros within the group.
+
+- **Nozzle Heating Shortcut**: Enhanced the extruder card by replacing the spool button with a direct nozzle heating
+  button. This improvement allows users to quickly heat the nozzle without having to
+
+- **Toggle Tablet Layout**: For devices that support the tablet layout, users can now toggle it on or off in the app
+  settings. This feature allows users to switch between the tablet and phone layout based on their preference.
+
+- **Progress Bar Categories on Android**: Progress bar notifications now have their own category on Android. This allows
+  users to
+  customize notification settings for text-based progress and progress bar notifications separately in the system
+  settings. (Android only)
+
+- **Tablet UI Beta**: The tablet UI has proven to be stable enough. Therefore, the warning card on the dashboard has
+  been removed.
+
+- **MediaMTX Support**: Added support for the MediaMTX-based webcam streamer. This allows users to use the MediaMTX
+  webcam streamer with Mobileraker. [#349](https://github.com/Clon1998/mobileraker/pull/349)
+
+### Bug Fixes
+
+- **Tool Selector**: Fixed an issue where the tool selector broke the extruder card if the tool was using an invalid
+  color variable. [#397](https://github.com/Clon1998/mobileraker/pull/397)
+
+## [2.7.1] - 2024-07-16
+
+### New Features
+
+- **Filament Load and Unload Wizard**: Introduced dedicated Filament Load and Unload buttons within the control extruder
+  card. These buttons launch a step-by-step wizard to assist users in loading or unloading filament. Users can configure
+  the speeds and distances in the printer settings within the app.
+- **Tool Selector**: Added a Tool-Selector to the Extruder Card, enhancing the functionality and ease of tool
+  management.
+- **Configurable ETA and Remaining Time**: Users can now configure the Estimated Time of Arrival (ETA) and Remaining
+  Time via a new ETA-Source selection field in the app settings. This setting is also automatically synchronized with
+  the companion which after the next companion update will also respect this setting.
+- **Companion Language Synchronization**: The app now automatically synchronizes its language settings with the
+  companion device to ensure notifications are displayed in the correct language, provided it is available on the
+  companion.
+
+### Enhancements
+
+- **Realtime Remote Configuration Updates**: App-Remote-Configs now update in real-time, preventing the dashboard from
+  becoming unresponsive due to a bad configuration.
+- **Increased File Page Timeout**: The timeout for the File Page has been increased to prevent early disconnections on
+  slow connections. This timeout can be further adjusted in the printer settings within the app.
+- **Static Dashboard Widgets**: Static Dashboard Widgets (e.g., Warnings, Announcements) are now displayed only on the
+  first page of the dashboard, reducing clutter on subsequent pages.
+- **Independent GCode-Macro Cards**: Multiple GCode-Macro cards now operate independently and do not synchronize the
+  selected group, providing greater flexibility.
+- **Enhanced HttpClient Stability**: The default HttpClient idle timeout has been increased to ensure a more stable
+  connection to the printer.
+
+### Bug Fixes
+
+- **GCode Detail Page Button Functionality**: Resolved an issue where the buttons on the GCode detail page did not
+  respond correctly to the printer and Klipper state unless the dashboard was opened first.
+- **Nozzle Size Metadata Display**: Fixed an issue where the GCode Page displayed `null` instead of `Unknown` if the
+  nozzle size metadata was unavailable.
+- **Log Sharing on iPad**: Logs can now be successfully shared on iPad devices.
+- **Developer Announcements Frequency**: Corrected a problem where developer announcements were shown too frequently.
+- **GCode Console History Preservation**: Fixed the issue where the GCode console history reset after navigating away
+  from the page.
+- **Full-Screen Webcam Page Access**: Addressed a bug preventing the full-screen webcam page from opening correctly from
+  the overview page.
+- **Printer Card Flickering**: Eliminated flickering of printer cards on the overview page during active prints.
+- **Printer Switching Order**: Fixed an issue where switching printers via the app bar did not honor the configured
+  printer order.
+
+## [2.7.0] - 2024-06-26
+
+### New Features
+
+- **Customizable Dashboards for Supporters**: Users can now create up to five tabs on small screen devices and
+  personalize them with various
+  cards. For big screen devices like tablets it is possible to modify the layout of the
+  page. [#11](https://github.com/Clon1998/mobileraker/issues/11)
+- **Reorder Printers**: You can now reorder printers on the overview page by long-pressing a printer and dragging it to
+  the desired position.
+- **Full Tablet Support [Beta]**: The app now scales correctly on tablets, offering a more desktop-like experience
+  optimized for larger screens. This includes the customizable dashboard feature, enhancing usability on tablets.
+
+### Enhancements
+
+- **Language Selection Menu**: Added country flags to improve accessibility.
+- **Remote Connection Disclaimer**: Included a disclaimer for remote connection failures, clarifying the differences
+  between _Mobileraker-Supporters_ and _OctoEverywhere_/_Obico-Supporters_.
+- **Printer Settings Simplification**: Removed the `Websocket Address` field to reduce complexity and confusion.
+- **Webcam Card Error Messages**: Enhanced the display of error messages for webcam cards for better clarity and
+  consistency.
+- **Webcam Card Visibility**: If a single webcam fails to load, the entire webcam card can now be
+  hidden. [#217](https://github.com/Clon1998/mobileraker/issues/217)
+- **Console Page Improvements**: More accurate command suggestions based on user input.
+- **Num-Edit Dialog Slider**: Increased the slider size for easier usability.
+- **Fan Control Enhancement**: You can now toggle fans to 100%/0% in the fans card by long-pressing the _Set_ button.
+- **File Page Caching**: The File page now caches results to prevent unnecessary reloading when switching between tabs
+  or files.
+- **Default Presets**: For new machines, the app now includes default temperature presets for PLA, PETG and ABS.
+- **Tach Fan Support**: The fan card now shows the tachometer value for fans that support it.
+- **Config File Sharing**: Added the ability to share config files (`*.cfg`) with other apps.
+
+### Bug Fixes
+
+- **Back Button**: Fixed the Back button on the printer add page.
+- **Spoolman Card**: The Spoolman card now displays the remaining filament with two decimal
+  places. [#364](https://github.com/Clon1998/mobileraker/issues/364)
+- **Printer Deletion Issue**: Fixed an issue that caused the app to get stuck when deleting a printer.
+- **JobQueue Button**: The JobQueue button on the files page now only shows up if on the gcode tab.
+
+### i18n
+
+- **Hungarian Translation**: Updated the Hungarian translation, thanks to [@AntoszHUN](https://github.com/AntoszHUN).
+
 ## [2.6.19] - 2024-05-09
 
 ### Enhancements

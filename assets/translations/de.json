@@ -52,7 +52,16 @@
     "start": "Starten",
     "repeat": "Wiederholen",
     "load_more": "Mehr laden",
-    "archived": "Archiviert"
+    "archived": "Archiviert",
+    "leave": "Verlassen",
+    "export": "Exportieren",
+    "import": "Importieren",
+    "current": "Aktuell",
+    "load": "Laden",
+    "unload": "Entladen",
+    "discard": "Verwerfen",
+    "hide": "Verstecken",
+    "finish": "Abschließen"
   },
   "pages": {
     "dashboard": {
@@ -86,7 +95,8 @@
         },
         "cam_card": {
           "webcam": "Webcam",
-          "fullscreen": "Vollbild"
+          "fullscreen": "Vollbild",
+          "error_connecting": "Fehler beim Verbinden mit {}.\nBitte überprüfen Sie die Verbindungseinstellungen und stellen Sie sicher, dass die Webcam online ist."
         },
         "temp_card": {
           "title": "Thermik",
@@ -157,7 +167,9 @@
         },
         "macro_card": {
           "title": "Gcode - Macros",
-          "no_macros": "In dieser Gruppe sind derzeit keine Makros sichtbar"
+          "no_macros": "In dieser Gruppe sind derzeit keine Makros sichtbar",
+          "add_grp_hint": "Sie können verschiedene Gruppen erstellen, um Ihre Makros zu verwalten. Dazu öffnen Sie die Druckereinstellungen und legen eine eigene Gruppen an.",
+          "show_all_tooltip": "Alle Makros anzeigen"
         },
         "pin_card": {
           "title_misc": "Verschiedenes",
@@ -210,18 +222,113 @@
         }
       }
     },
+    "customizing_dashboard": {
+      "title": "Dashboard-Layout Personalisieren",
+      "cancel_confirm": {
+        "title": "Änderungen verwerfen?",
+        "body": "Möchten Sie den Layout-Bearbeitungsmodus wirklich verlassen? Dadurch werden alle Änderungen verworfen. Um Ihre Änderungen zu speichern, drücken Sie die Speichertaste."
+      },
+      "add_card": "Karte hinzufügen",
+      "remove_page": "Seite entfernen",
+      "saved_snack": {
+        "title": "Layout gespeichert!",
+        "body": "Ihre Änderungen wurden gespeichert."
+      },
+      "cant_remove_snack": {
+        "title": "Operation nicht möglich!",
+        "body": "Sie benötigen mindestens 2 Seiten, um eine entfernen zu können."
+      },
+      "confirm_removal": {
+        "title": "Seite entfernen?",
+        "body": "Möchten Sie diese Seite wirklich entfernen?"
+      },
+      "editing_card": {
+        "title": "Editiermodus",
+        "body": "Sie können jetzt Layout Karten und Seiten neu anordnen, hinzufügen und entfernen. Alle Karten zeigen Vorschau-Daten an."
+      },
+      "error_save_snack": {
+        "title": "Fehler beim Speichern!",
+        "body": "Ihre Änderungen konnten nicht gespeichert werden."
+      },
+      "error_no_components": {
+        "title": "Leeres Layout!",
+        "body": "Du hast keine Widgets hinzugefügt. Füge mindestens ein Widget hinzu, um das Layout zu speichern."
+      }
+    },
     "files": {
       "title": "Dateien",
-      "search_files": "Dateien durchsuchen",
-      "clear_search": "Suche löschen",
-      "name": "Name",
-      "last_mod": "Zuletzt bearbeitet",
-      "last_printed": "Zuletzt gedruckt",
-      "not_printed": "Nicht gedruckt",
-      "fetching_files": "@:general.fetching Dateien…",
-      "no_files_found": "Keine Datei gefunden!",
+      "empty_folder": {
+        "title": "Dieser Ordner ist leer",
+        "subtitle": "Keine Dateien gefunden"
+      },
+      "sort_by": {
+        "sort_by": "Sortieren nach",
+        "name": "Name",
+        "last_modified": "Zuletzt bearbeitet",
+        "last_printed": "Zuletzt gedruckt",
+        "file_size": "Dateigröße"
+      },
+      "file_actions": {
+        "download": "Herunterladen",
+        "delete": "Löschen",
+        "copy": "Kopieren",
+        "move": "Verschieben",
+        "rename": "Umbenennen",
+        "create_file": "Datei erstellen",
+        "create_folder": "Ordner erstellen",
+        "upload": "Datei hochladen",
+        "upload_bulk": "Dateien hochladen"
+      },
+      "gcode_file_actions": {
+        "submit": "Datei drucken",
+        "preheat": "Vorheizen",
+        "enqueue": "Zur Warteschlange hinzufügen"
+      },
+      "file_operation": {
+        "download_canceled": {
+          "title": "Download abgebrochen",
+          "body": "Der Download wurde abgebrochen."
+        },
+        "download_failed": {
+          "title": "Download fehlgeschlagen",
+          "body": "Beim Herunterladen der Datei ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut."
+        },
+        "upload_canceled": {
+          "title": "Upload abgebrochen",
+          "body": "Der Upload wurde abgebrochen."
+        },
+        "upload_success": {
+          "title": "Upload erfolgreich",
+          "body": "Die Datei wurde erfolgreich hochgeladen."
+        },
+        "upload_failed": {
+          "title": "Upload fehlgeschlagen",
+          "body": "Beim Hochladen der Datei ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut."
+        },
+        "copy_created": {
+          "title": "Kopie erstellt",
+          "body": "Die Datei wurde erfolgreich nach '{}' kopiert."
+        }
+      },
+      "search_files": "Im Ordner suchen",
+      "search": {
+        "clear_search": "Suche löschen",
+        "waiting": "Warten auf Suche!",
+        "no_results": {
+          "title": "Keine Dateien gefunden",
+          "subtitle": "Versuchen Sie einen anderen Suchbegriff"
+        }
+      },
+      "cancel_fab": {
+        "upload": "Upload abbrechen",
+        "download": "Download abbrechen"
+      },
+      "move_here": "Hierhin verschieben",
+      "copy_here": "Hierhin kopieren",
       "no_matches_file_pattern": "Es sind nur Buchstaben, Zahlen, Unterstriche, Bindestriche und Punkte erlaubt!",
-      "file_name_in_use": "Der Dateiname wird bereits verwendet!",
+      "gcode_tab": "GCodes",
+      "config_tab": "Konfigs",
+      "timelapse_tab": "Zeitraffer",
       "details": {
         "preheat": "Vorheizen",
         "print": "Drucken",
@@ -293,7 +400,11 @@
         "filament_sensor_dialog": "Filamentsensor Dialog",
         "filament_sensor_dialog_hint": "Zeige einen Dialog, wenn ein Filamentsensor ausgelöst wird",
         "confirm_gcode": "Bestätige Makro-Ausführung",
-        "confirm_gcode_hint": "Zeige immer einen Bestätigungsdialog, bevor ein Makro auf dem Dashboard ausgeführt wird"
+        "confirm_gcode_hint": "Zeige immer einen Bestätigungsdialog, bevor ein Makro auf dem Dashboard ausgeführt wird",
+        "eta_sources": "ETA Quellen",
+        "eta_sources_hint": "Wählen Sie die Quellen, die zur Berechnung der ETA verwendet werden sollen",
+        "medium_ui": "Tablet UI",
+        "medium_ui_hint": "Aktiviert das Tablet-UI für größere Bildschirme"
       },
       "notification": {
         "title": "Benachrichtigung",
@@ -382,7 +493,17 @@
         "feedrate": "Extruder Vorschubgeschwindigkeit",
         "feedrate_short": "Vorschubgeschwindigkeit",
         "steps_extrude": "Extrudier-Schritte",
-        "steps_extrude_short": "@:pages.printer_edit.extruders.steps_extrude"
+        "steps_extrude_short": "@:pages.printer_edit.extruders.steps_extrude",
+        "filament": {
+          "loading_distance": "Extruder-Düsen Abstand",
+          "loading_distance_helper": "Abstand von der Düse zum Extruder. Wird zum Laden und Entladen des Filaments verwendet",
+          "loading_speed": "(Ent)Ladegeschwindigkeit",
+          "loading_speed_helper": "Geschwindigkeit zum Laden und Entladen des Filaments von der Düse zum Extruder",
+          "purge_amount": "Ausstoß-Länge",
+          "purge_amount_helper": "Filament-Ausstoß zur Reinigung der Düse",
+          "purge_speed": "Ausstoß-Geschwindigkeit",
+          "purge_speed_helper": "Geschwindigkeit zum Reinigen des Filaments"
+        }
       },
       "cams": {
         "target_fps": "Ziel FPS",
@@ -410,7 +531,8 @@
           "one": "Ein Makro in die Standardgruppe verschoben!",
           "two": "Zwei Makro in die Standardgruppe verschoben!",
           "other": "{} Makros in die Standardgruppe verschoben!"
-        }
+        },
+        "macro_removed": "Das Makro wurde nicht gefunden und wird in Kürze automatisch entfernt."
       },
       "presets": {
         "no_presets": "Keine Voreinstellungen hinzugefügt!",
@@ -545,8 +667,14 @@
       "card_title": "GCode Konsole",
       "no_entries": "Keine zwischengespeicherten Befehle gefunden",
       "fetching_console": "@:general.fetching Konsoleneinträge…",
+      "macro_suggestions": "G-Code Vorschläge",
+      "no_suggestions": "Keine Vorschläge gefunden",
       "command_input": {
         "hint": "Geben Sie einen Befehl ein"
+      },
+      "provider_error": {
+        "title": "Fehler beim Laden der Konsole!",
+        "body": "Entschuldigung, ein unerwarteter Fehler ist aufgetreten. Die Konsoleneinträge konnten nicht geladen werden. Bitte versuchen Sie es später erneut!"
       }
     },
     "overview": {
@@ -604,13 +732,13 @@
       "title": "Tools"
     },
     "beltTuner": {
-      "title": "Riementuner",
+      "title": "Zahnriemen-Tuner",
       "description": "Die richtige Riemenspannung ist für eine optimale Leistung des 3D-Druckers unerlässlich. Eine falsche Spannung, ob zu stark oder zu schwach, kann zu mechanischen Problemen, frühzeitiger Ermüdung und verminderter Druckqualität führen. Die angegebenen Werte dienen als Richtwerte; es wird jedoch empfohlen, die Empfehlungen des Herstellers zu beachten, um konkrete, auf Ihr Druckermodell zugeschnittene Richtwerte zu erhalten. Anpassungen sollten sowohl auf der Grundlage dieser empfohlenen Werte als auch auf der Grundlage der individuellen Anforderungen und Bedingungen des Druckers vorgenommen werden.",
       "beltType": "Wählen deine Zahnriemen Typ:",
       "target": "Ziel: {} Hz über {} mm",
       "permissionWarning": {
         "title": "Berechtigung für das Mikrofon erforderlich",
-        "subtitle": "Der Riementuner verwendet das Mikrofon Ihres Telefons, um die Frequenz Ihrer Gurte zu analysieren.\n\nTippen Sie, um die Erlaubnis zu erteilen."
+        "subtitle": "Der Zahnriemen-Tuner verwendet das Mikrofon Ihres Telefons, um die Frequenz Ihrer Zahnriemen zu analysieren.\n\nTippen Sie, um die Erlaubnis zu erteilen."
       }
     },
     "spoolman": {
@@ -629,11 +757,11 @@
       },
       "filament": {
         "one": "Filament",
-        "andere": "Filamente"
+        "other": "Filamente"
       },
       "vendor": {
         "one": "Anbieter",
-        "andere": "Anbieter"
+        "other": "Anbieter"
       },
       "properties": {
         "id": "ID",
@@ -652,21 +780,21 @@
         "remaining_weight": "Verbleibendes Gewicht",
         "used_weight": "Benutztes Gewicht",
         "location": "Standort",
-        "lot_number": "Lot Number"
+        "lot_number": "Lot Nummer"
       },
       "vendor_details": {
         "page_title": "Lieferant {}",
-        "info_card": "Anbieter-Info",
+        "info_card": "Anbieter Details",
         "filaments_card": "Filamente nach Anbieter",
         "spools_card": "Spulen nach Anbieter"
       },
       "filament_details": {
-        "info_card": "Filament Info",
+        "info_card": "Filament Details",
         "spools_card": "Filament Spulen"
       },
       "spool_details": {
-        "page_title": "Spool {}",
-        "info_card": "Spool Info",
+        "page_title": "Spule {}",
+        "info_card": "Spulen Details",
         "set_active": "Als aktiven Spool einstellen",
         "archived_warning": {
           "title": "Spool ist archiviert",
@@ -712,7 +840,9 @@
       "job_queue": "Die Job Queue ist leider nur für Supporter verfügbar.",
       "timelaps_share": "Das Teilen von Zeitrafferaufnahmen ist leider nur für Unterstützer möglich.",
       "printer_theme": "Druckerspezifische Designs sind leider nur für Supporter verfügbar.",
-      "spoolman_page": "Die Spoolman-Seite ist leider nur für Supporter verfügbar."
+      "spoolman_page": "Die Spoolman-Seite ist leider nur für Supporter verfügbar.",
+      "custom_dashboard": "Benutzerdefinierte Dashboards sind leider nur für Supporter verfügbar.",
+      "full_file_management": "Die vollständige Dateiverwaltung (Hochladen, Runterladen…) ist leider nur für Supporter verfügbar."
     },
     "machine_deletion_warning": {
       "title": "Maschinelle Löschung",
@@ -755,11 +885,23 @@
       "title": "Ordner umbenennen",
       "label": "Ordnername"
     },
+    "copy_folder": {
+      "title": "Ordner kopieren",
+      "label": "Ordnername"
+    },
     "delete_file": {
       "description": "Bestätigen Sie die Löschung der Datei '{}'."
     },
     "rename_file": {
       "title": "Datei umbenennen",
+      "label": "Dateiname"
+    },
+    "copy_file": {
+      "title": "Datei kopieren",
+      "label": "Dateiname"
+    },
+    "create_file": {
+      "title": "Datei erstellen",
       "label": "Dateiname"
     },
     "exclude_object": {
@@ -818,6 +960,14 @@
       "printer_theme_perk": {
         "title": "Druckerbasierte Designs",
         "subtitle": "Wählen Sie für jeden Drucker ein anderes Design!"
+      },
+      "custom_dashboard_perk": {
+        "title": "Anpassbares Dashboards",
+        "subtitle": "Passen Sie Ihr Dashboard an Ihre Bedürfnisse an!"
+      },
+      "full_file_management_perk": {
+        "title": "Vollständige Dateiverwaltung",
+        "subtitle": "Uneingeschränkte Dateiverwaltung. Hochladen, Herunterladen von Dateien und mehr!"
       }
     },
     "bed_screw_adjust": {
@@ -866,6 +1016,67 @@
       "title": "Bettneigung einstellen",
       "base": "Basis",
       "hint": "Der Dialog hilft Ihnen, die Bett-Schrauben einzustellen. Für jede Schraube wird die erforderliche Anpassung als Uhrzeit (HH:MM) angezeigt. Zum Beispiel bedeutet 01:15 eine volle Umdrehung plus eine Vierteldrehung in die Richtung, die das Icon angibt."
+    },
+    "dashboard_page_settings": {
+      "title": "Dashboard-Seiteneinstellungen",
+      "icon_label": "Wählen Sie das Symbol für die Seite:"
+    },
+    "filament_switch": {
+      "title": {
+        "load": "Filament Lade Assistent",
+        "unload": "Filament Entlade Assistent"
+      },
+      "controls": {
+        "heat_up": "Aufheizen",
+        "change_temp": "Temperatur ändern",
+        "purge": "Ausstoßen",
+        "repeat_load": "Laden wiederholen",
+        "repeat_unload": "Entladen wiederholen",
+        "repeat_purge": "Ausstoßen wiederholen"
+      },
+      "steps": {
+        "set_temps": {
+          "title": "Filament Temperatur",
+          "subtitle": "Zieltemperatur auswählen"
+        },
+        "heat_up": {
+          "title": "Druckkopf aufheizen",
+          "subtitle": "Aufheizen auf Zieltemperatur"
+        },
+        "move": {
+          "title": {
+            "load": "Filament laden",
+            "unload": "Filament entladen"
+          },
+          "subtitle": {
+            "load": {
+              "idle": "Filament in den Extruder einführen",
+              "processing": "Filament wird geladen...",
+              "processed": "Hat das Filament die Düse erreicht? Bei Bedarf wiederholen"
+            },
+            "unload": {
+              "idle": "Filament aus dem Extruder bewegen",
+              "processing": "Filament wird entladen...",
+              "processed": "Ist das Filament aus dem Extruder gekommen? Bei Bedarf wiederholen"
+            }
+          }
+        },
+        "purge": {
+          "title": "Filament Ausstoßen",
+          "subtitle": {
+            "idle": "Filament in die Düse laden",
+            "processing": "Filament wird ausgestoßen...",
+            "processed": "Überprüfen, ob das ausgestoßene Material sauber ist. Bei Bedarf wiederholen"
+          }
+        },
+        "tip_form": {
+          "title": "Spitzenbildung",
+          "subtitle": "Eine Filamentspitze formen"
+        }
+      }
+    },
+    "heater_temperature": {
+      "title": "{} Temperatur [°C]"
     }
   },
   "bottom_sheets": {
@@ -970,7 +1181,8 @@
       "no_profile_active": "Kein aktives Profil",
       "no_mesh": "Kein Netz",
       "clear_loaded_profile": "Geladenes Profil zurücksetzen",
-      "range_between_highest_and_lowest_point": "Abstand zwischen höchstem und tiefstem Punkt"
+      "range_between_highest_and_lowest_point": "Abstand zwischen höchstem und tiefstem Punkt",
+      "cant_render": "Das Rendering des Bettnetzes für die  Drucker-Kinematik wird noch nicht unterstützt."
     },
     "select_spool": {
       "header": {
@@ -1005,6 +1217,38 @@
           "service_stop": "Sie sind im Begriff, den Dienst '{}' zu beenden. Sind Sie sicher, dass Sie fortfahren möchten?"
         }
       }
+    },
+    "dashboard_cards": {
+      "title": "Karte hinzufügen",
+      "subtitle": "Wählen Sie eine Karte aus, die Sie hinzufügen möchten"
+    },
+    "dashboard_layout": {
+      "title": "Dashboard Layout",
+      "subtitle": "Aktuelles Layout:",
+      "available_layouts": {
+        "label": "Verfügbare Layouts:",
+        "empty": "Keine Layouts gefunden",
+        "add_empty": "Leeres Layout hinzufügen"
+      },
+      "layout_preview": {
+        "not_saved": "Nicht gespeichert"
+      },
+      "rename_layout": {
+        "title": "Layout umbenennen",
+        "label": "Layout Name"
+      },
+      "delete_layout": {
+        "title": "Layout löschen",
+        "body": "Sind Sie sicher, dass Sie das Layout '{}' löschen möchten? Alle Maschinen welche dieses Layout verwenden, werden auf das Standardlayout zurückgesetzt."
+      },
+      "import_snackbar": {
+        "title": "Layout importiert!",
+        "body": "Stellen Sie sicher, dass Sie das Layout speichern, um es zu behalten."
+      },
+      "falsy_import_snackbar": {
+        "title": "Fehler beim Importieren",
+        "body": "Das Layout konnte nicht importiert werden. Bitte stellen Sie sicher, dass die Zwischenablage ein gültiges Layout enthält."
+      }
     }
   },
   "klipper_state": {
@@ -1016,6 +1260,14 @@
     "unauthorized": "Unberechtigt",
     "initializing": "Initialisierung",
     "not_connected": "Moonraker kann keine Verbindung mit Klipper herstellen. Bitte überprüfen Sie, ob Klipper auf Ihrem System läuft."
+  },
+  "print_state": {
+    "standby": "Standby",
+    "printing": "Drucken",
+    "paused": "Pausiert",
+    "complete": "Abgeschlossen",
+    "cancelled": "Abgebrochen",
+    "error": "Fehler"
   },
   "theme_mode": {
     "light": "Hell",
@@ -1043,7 +1295,8 @@
   },
   "form_validators": {
     "simple_url": "Die Eingabe erlaubt nur URL-Komponenten: Hostname und Port",
-    "disallow_mdns": "mDNS (.local) Adressen werden nicht unterstützt"
+    "disallow_mdns": "mDNS (.local) Adressen werden nicht unterstützt",
+    "file_name_in_use": "Dateiname wird bereits verwendet"
   },
   "date": {
     "year": {

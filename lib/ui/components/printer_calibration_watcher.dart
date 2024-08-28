@@ -35,12 +35,16 @@ class _PrinterCalibrationWatcherState extends ConsumerState<PrinterCalibrationWa
   @override
   void initState() {
     super.initState();
+    logger.i('Init PrinterCalibrationWatcher for ${widget.machineUUID}');
     _setup();
   }
 
   @override
   void didUpdateWidget(PrinterCalibrationWatcher old) {
-    _setup();
+    if (old.machineUUID != widget.machineUUID) {
+      logger.i('Switching PrinterCalibrationWatcher from ${old.machineUUID} to ${widget.machineUUID}');
+      _setup();
+    }
     super.didUpdateWidget(old);
   }
 
@@ -91,7 +95,7 @@ class _PrinterCalibrationWatcherState extends ConsumerState<PrinterCalibrationWa
     _screwsTiltAdjustSubscription = ref.listenManual(
       printerProvider(widget.machineUUID).selectAs((data) => data.screwsTiltAdjust),
       (previous, next) {
-        logger.w('SCT-got $previous -> $next');
+        logger.i('SCT-got $previous -> $next');
         if (next case AsyncData(value: var screwsTiltAdjust?, isLoading: false) when !_dialogService.isDialogOpen) {
           // If we had a refresh (invalidate/refresh) and the value has not changed, we dont want to show the dialog
           if (previous case AsyncValue(isRefreshing: true, value: var prevScrew) when prevScrew == screwsTiltAdjust) {

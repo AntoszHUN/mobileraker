@@ -21,12 +21,13 @@ import 'package:common/service/setting_service.dart';
 import 'package:common/util/extensions/async_ext.dart';
 import 'package:common/util/extensions/logging_extension.dart';
 import 'package:common/util/extensions/ref_extension.dart';
-import 'package:common/util/extensions/uri_extension.dart';
 import 'package:common/util/logger.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart' hide Notification;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+import 'live_activity_service_v2.dart';
 
 part 'notification_service.g.dart';
 
@@ -55,12 +56,14 @@ Future<String> fcmToken(FcmTokenRef ref) async {
 class NotificationService {
   static const String _notificationTappedPortName = 'onNoti';
   static const String _fcmTokenUpdatedPortName = 'tknUpdat';
+  static const String _marketingTopic = 'marketing';
 
   NotificationService(this._ref)
       : _machineService = _ref.watch(machineServiceProvider),
         _settingsService = _ref.watch(settingServiceProvider),
         _notifyAPI = _ref.watch(awesomeNotificationProvider),
         _liveActivityService = _ref.watch(liveActivityServiceProvider),
+        _liveActivityServicev2 = _ref.watch(v2LiveActivityProvider),
         _notifyFCM = _ref.watch(awesomeNotificationFcmProvider);
 
   final AutoDisposeRef _ref;
@@ -69,6 +72,7 @@ class NotificationService {
   final AwesomeNotifications _notifyAPI;
   final AwesomeNotificationsFcm _notifyFCM;
   final LiveActivityService _liveActivityService;
+  final LiveActivityServiceV2 _liveActivityServicev2;
 
   final ReceivePort _notificationTapPort = ReceivePort();
   final ReceivePort _fcmTokenUpdatePort = ReceivePort();
@@ -94,7 +98,8 @@ class NotificationService {
       _initializeLocalMessageHandling(allMachines);
       _initializeRemoteMessaging(licenseKeys, allMachines, hiddenMachines).ignore();
 
-      await _liveActivityService.initialize();
+      // await _liveActivityService.initialize();
+      await _liveActivityServicev2.initialize();
 
       _initializeMachineRepoListener();
 
@@ -244,6 +249,7 @@ class NotificationService {
           onFcmSilentDataHandle: _awesomeNotificationFCMBackgroundHandler,
           licenseKeys: licenseKeys);
       allMachines.forEach(_setupMachineFcmUpdater);
+      _setupFcmTopicNotifications();
     }
   }
 
@@ -358,12 +364,40 @@ class NotificationService {
         enableLights: false,
         importance: NotificationImportance.Low,
         defaultColor: Colors.white,
+      ),
+      NotificationChannel(
+        icon: 'resource://drawable/res_mobileraker_logo',
+        channelKey: machine.printProgressBarChannelKey,
+        channelName: 'Print Progressbar Updates - ${machine.name}',
+        channelDescription: 'Permanent Progressbar, indicating the print progress.',
+        channelGroupKey: machine.uuid,
+        playSound: false,
+        enableVibration: false,
+        enableLights: false,
+        importance: NotificationImportance.Low,
+        defaultColor: Colors.white,
       )
     ];
   }
 
   NotificationChannelGroup _channelGroupForMachine(Machine machine) {
     return NotificationChannelGroup(channelGroupKey: machine.uuid, channelGroupName: 'Printer ${machine.name}');
+  }
+
+  void _setupFcmTopicNotifications() {
+    logger.i('Setting up FCM topic notifications');
+    _fcmUpdateListeners[_marketingTopic]?.close();
+
+    _fcmUpdateListeners[_marketingTopic] =
+        _ref.listen(boolSettingProvider(AppSettingKeys.receiveMarketingNotifications), (previous, next) {
+      if (next == true) {
+        logger.i('Subscribing to marketing topic');
+        _notifyFCM.subscribeToTopic(_marketingTopic);
+      } else {
+        logger.i('Unsubscribing from marketing topic');
+        _notifyFCM.unsubscribeToTopic(_marketingTopic);
+      }
+    }, fireImmediately: true);
   }
 
   void _setupMachineFcmUpdater(Machine machine) {
@@ -374,10 +408,10 @@ class NotificationService {
       if (next.valueOrFullNull == KlipperState.ready) {
         var fcmToken = await _notifyFCM.requestFirebaseAppToken();
         try {
-          logger.i('Updating FCM settings on ${machine.name}(${machine.wsUri.obfuscate()})');
+          logger.i('Updating FCM settings on ${machine.logNameExtended}');
           await _machineService.updateMachineFcmSettings(machine, fcmToken);
         } catch (e, s) {
-          logger.w('Could not updateMachineFcmSettings on ${machine.name}(${machine.wsUri.obfuscate()})', e, s);
+          logger.w('Could not updateMachineFcmSettings on ${machine.logNameExtended}', e, s);
         }
       }
     });
@@ -387,7 +421,7 @@ class NotificationService {
   }
 
   Future<void> _wipeFCMOnPrinterOnceConnected(Machine machine) async {
-    logger.i('Wiping FCM data on ${machine.name}(${machine.wsUri.obfuscate()})');
+    logger.i('Wiping FCM data on ${machine.logNameExtended}');
     var mProvider = machineProvider(machine.uuid);
     var keepAliveExternally = _ref.keepAliveExternally(mProvider);
     try {
@@ -396,10 +430,10 @@ class NotificationService {
       await _ref.read(mProvider.future);
       // Wait until connected
       await _ref.readWhere<KlipperInstance>(klipperProvider(machine.uuid), (c) => c.klippyState == KlipperState.ready);
-      logger.i('Jrpc Client of ${machine.name}(${machine.wsUri}) is connected, WIPING FCM data on printer now!');
+      logger.i('Jrpc Client of ${machine.logNameExtended} is connected, WIPING FCM data on printer now!');
       await _machineService.removeFCMCapability(machine);
     } catch (e, s) {
-      logger.w('Could not WIPE fcm data on ${machine.name}(${machine.wsUri.obfuscate()})', e, s);
+      logger.w('Could not WIPE fcm data on ${machine.logNameExtended}', e, s);
     } finally {
       // Since I initited the provider before and all hidden machines dont have a machineProvider setup, also remove it again!
       keepAliveExternally.close();

@@ -14,7 +14,7 @@ import 'package:common/data/model/hive/machine.dart';
 import 'package:common/data/model/hive/octoeverywhere.dart';
 import 'package:common/exceptions/obico_exception.dart';
 import 'package:common/exceptions/octo_everywhere_exception.dart';
-import 'package:common/network/dio_provider.dart';
+import 'package:common/network/http_client_factory.dart';
 import 'package:common/network/json_rpc_client.dart';
 import 'package:common/service/app_router.dart';
 import 'package:common/service/firebase/remote_config.dart';
@@ -57,7 +57,7 @@ class PrinterAddViewController extends _$PrinterAddViewController {
   @override
   PrinterAddState build() {
     var isSupporter = ref.watch(isSupporterProvider);
-    var maxNonSupporterMachines = ref.watch(remoteConfigProvider).maxNonSupporterMachines;
+    var maxNonSupporterMachines = ref.watch(remoteConfigIntProvider('non_suporters_max_printers'));
     if (!isSupporter && maxNonSupporterMachines > 0) {
       ref.read(allMachinesProvider.selectAsync((data) => data.length)).then((value) {
         if (value >= maxNonSupporterMachines) {
@@ -104,9 +104,8 @@ class PrinterAddViewController extends _$PrinterAddViewController {
         );
       }
 
-      var wsUrl = buildMoonrakerWebSocketUri(localIp);
       var httpUri = buildMoonrakerHttpUri(localIp);
-      if (wsUrl == null || httpUri == null) {
+      if (httpUri == null) {
         throw const OctoEverywhereException(
           'Could not retrieve Printer\'s local IP.',
         );
@@ -114,7 +113,6 @@ class PrinterAddViewController extends _$PrinterAddViewController {
 
       var machine = Machine(
         name: infoResult.printerName,
-        wsUri: wsUrl,
         httpUri: httpUri,
         octoEverywhere: OctoEverywhere.fromDto(appPortalResult),
       );
@@ -141,15 +139,13 @@ class PrinterAddViewController extends _$PrinterAddViewController {
       logger.i('Local Platform Info used by obico client app: $platformInfo');
 
       var localAddress = '${platformInfo.host}:${platformInfo.port}';
-      var wsUrl = buildMoonrakerWebSocketUri(localAddress);
       var httpUri = buildMoonrakerHttpUri(localAddress);
-      if (wsUrl == null || httpUri == null) {
+      if (httpUri == null) {
         throw const ObicoException('Could not retrieve Printer\'s local IP.');
       }
 
       var machine = Machine(
         name: platformInfo.name ?? 'Obico Printer',
-        wsUri: wsUrl,
         httpUri: httpUri,
         obicoTunnel: tunnel,
       );
@@ -165,7 +161,7 @@ class PrinterAddViewController extends _$PrinterAddViewController {
   }
 
   void onPopInvoked(bool isPop) {
-    if (!isPop) ref.watch(printerAddViewControllerProvider.notifier).previousStep();
+    if (!isPop) ref.read(printerAddViewControllerProvider.notifier).previousStep();
   }
 
   selectMode(bool isExpert) {
@@ -233,14 +229,19 @@ class SimpleFormController extends _$SimpleFormController {
 
     ref.read(printerAddViewControllerProvider.notifier).provideMachine(Machine(
           name: _displayNameField.transformedValue,
-          wsUri: buildMoonrakerWebSocketUri(
-            '${state.scheme}${_urlField.transformedValue}',
-          )!,
           httpUri: buildMoonrakerHttpUri(
             '${state.scheme}${_urlField.transformedValue}',
           )!,
           apiKey: _apiKeyField.transformedValue,
         ));
+  }
+
+  void focusNext(String key, FocusNode fieldNode, FocusNode nextNode) {
+    if (_formState.fields[key]?.validate() == true) {
+      nextNode.requestFocus();
+    } else {
+      fieldNode.requestFocus();
+    }
   }
 }
 
@@ -266,9 +267,6 @@ class AdvancedFormController extends _$AdvancedFormController {
 
     if (pState.machineToAdd != null) {
       return AdvancedFormState(
-        wsUriFromHttpUri: buildMoonrakerWebSocketUri(
-          pState.machineToAdd!.httpUri.toString(),
-        ),
         headers: pState.machineToAdd!.httpHeaders,
         trustUntrustedCertificate: pState.machineToAdd!.trustUntrustedCertificate,
         pinnedCertificateDER: pState.machineToAdd!.pinnedCertificateDERBase64,
@@ -287,10 +285,7 @@ class AdvancedFormController extends _$AdvancedFormController {
 
   proceed() {
     if (!_formState.saveAndValidate()) return;
-
-    bool wsInputEmpty = _wsField.transformedValue?.isEmpty ?? true;
     var httpInput = _httpField.transformedValue;
-    var wsInput = (wsInputEmpty) ? httpInput : _wsField.transformedValue;
 
     var headers = ref.read(headersControllerProvider(state.headers));
     var sslSettings =
@@ -299,7 +294,6 @@ class AdvancedFormController extends _$AdvancedFormController {
     ref.read(printerAddViewControllerProvider.notifier).provideMachine(Machine(
           name: _displayNameField.transformedValue,
           httpUri: buildMoonrakerHttpUri(httpInput)!,
-          wsUri: buildMoonrakerWebSocketUri(wsInput, wsInputEmpty)!,
           apiKey: _apiKeyField.transformedValue,
           timeout: _localTimeoutField.transformedValue,
           httpHeaders: headers,
@@ -308,10 +302,16 @@ class AdvancedFormController extends _$AdvancedFormController {
         ));
   }
 
-  onHttpUriChanged(String? httpInput) {
-    state = state.copyWith(
-      wsUriFromHttpUri: (httpInput == null || httpInput.isEmpty) ? null : buildMoonrakerWebSocketUri(httpInput),
-    );
+  void focusNext(String key, FocusNode fieldNode, [FocusNode? nextNode = null]) {
+    if (_formState.fields[key]?.validate() == true) {
+      if (nextNode != null) {
+        nextNode.requestFocus();
+      } else {
+        fieldNode.nextFocus();
+      }
+    } else {
+      fieldNode.requestFocus();
+    }
   }
 }
 
@@ -324,7 +324,6 @@ class TestConnectionController extends _$TestConnectionController {
 
   @override
   TestConnectionState build() {
-    ref.onDispose(dispose);
     ref.listenSelf((previous, next) {
       logger.wtf('TestConnectionState: $previous -> $next');
     });
@@ -338,7 +337,7 @@ class TestConnectionController extends _$TestConnectionController {
 
     TestConnectionState s;
 
-    var baseOptions = BaseOptions(
+    final baseOptions = BaseOptions(
       baseUrl: machineToAdd.httpUri.toString(),
       headers: machineToAdd.headerWithApiKey,
       connectTimeout: Duration(seconds: machineToAdd.timeout),
@@ -349,21 +348,29 @@ class TestConnectionController extends _$TestConnectionController {
           machineToAdd.pinnedCertificateDERBase64?.let((it) => sha256.convert(fromBase64(it)))
       ..clientType = ClientType.local;
 
-    var httpClient = httpClientFromBaseOptions(baseOptions);
+    final httpClientFactory = ref.read(httpClientFactoryProvider);
+
+    final httpClient = httpClientFactory.fromBaseOptions(baseOptions);
 
     JsonRpcClientBuilder jsonRpcClientBuilder = JsonRpcClientBuilder.fromBaseOptions(baseOptions, machineToAdd);
     jsonRpcClientBuilder.httpClient = httpClient;
-
-    s = TestConnectionState(
-      wsUri: machineToAdd.wsUri,
-      httpUri: machineToAdd.httpUri,
-    );
 
     _httpClient = httpClient;
     _client = jsonRpcClientBuilder.build();
     _httpHeaders = machineToAdd.headerWithApiKey;
     _testWebsocket();
+
+    s = TestConnectionState(
+      httpUri: machineToAdd.httpUri,
+      wsUri: _client.uri,
+    );
+
     _testHttp(s.httpUri);
+
+    ref.onDispose(() => _testConnectionRPCState?.cancel());
+    ref.onDispose(_client.dispose);
+    ref.onDispose(_httpClient.close);
+
     return s;
   }
 
@@ -413,12 +420,6 @@ class TestConnectionController extends _$TestConnectionController {
       state = state.copyWith(httpState: false, httpError: e.toString());
     }
   }
-
-  dispose() {
-    _testConnectionRPCState?.cancel();
-    _client.dispose();
-    _httpClient.close();
-  }
 }
 
 @freezed
@@ -456,7 +457,6 @@ class AdvancedFormState with _$AdvancedFormState {
   const AdvancedFormState._();
 
   const factory AdvancedFormState({
-    Uri? wsUriFromHttpUri,
     @Default({}) Map<String, String> headers,
     @Default(false) bool trustUntrustedCertificate,
     String? pinnedCertificateDER,

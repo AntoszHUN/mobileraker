@@ -43,7 +43,7 @@ class _FilamentSensorWatcherState extends ConsumerState<FilamentSensorWatcher> {
     ref.listenManual(
       boolSettingProvider(AppSettingKeys.filamentSensorDialog, true),
       (previous, next) {
-        logger.w('FilamentSensorWatcher: filamentSensorDialog setting changed from $previous to $next');
+        logger.i('FilamentSensorWatcher: filamentSensorDialog setting changed from $previous to $next');
         if (next != _enabled) {
           _enabled = next;
           if (_enabled) {
@@ -59,7 +59,7 @@ class _FilamentSensorWatcherState extends ConsumerState<FilamentSensorWatcher> {
 
   @override
   void didUpdateWidget(FilamentSensorWatcher oldWidget) {
-    if (_enabled) _setup();
+    if (_enabled && oldWidget.machineUUID != widget.machineUUID) _setup();
     super.didUpdateWidget(oldWidget);
   }
 
@@ -93,7 +93,7 @@ class _FilamentSensorWatcherState extends ConsumerState<FilamentSensorWatcher> {
               type: DialogType.info,
               title: 'dialogs.filament_sensor_triggered.title'.tr(),
               body: 'dialogs.filament_sensor_triggered.body'.tr(args: [beautifyName(sensor.name)]),
-              cancelBtn: 'general.close'.tr(),
+              dismissLabel: 'general.close'.tr(),
             ));
             return;
           } else if (sensor.enabled && sensor.filamentDetected) {

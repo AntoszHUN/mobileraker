@@ -5,6 +5,7 @@
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:common/data/dto/files/remote_file_mixin.dart';
+import 'package:common/data/model/file_operation.dart';
 import 'package:common/network/dio_provider.dart';
 import 'package:common/service/moonraker/file_service.dart';
 import 'package:common/service/selected_machine_service.dart';
@@ -42,9 +43,13 @@ class _ImageFilePageState extends ConsumerState<ImageFilePage> {
       appBar: AppBar(
         title: Text(widget.file.name),
         actions: [
-          IconButton(
-            onPressed: downloading ? null : shareFile,
-            icon: const Icon(Icons.share),
+          Builder(
+            builder: (ctx) {
+              return IconButton(
+                onPressed: downloading ? null : () => shareFile(ctx),
+                icon: const Icon(Icons.share),
+              );
+            },
           ),
         ],
       ),
@@ -77,7 +82,7 @@ class _ImageFilePageState extends ConsumerState<ImageFilePage> {
     );
   }
 
-  shareFile() async {
+  shareFile(BuildContext ctx) async {
     setState(() {
       downloading = true;
     });
@@ -91,9 +96,13 @@ class _ImageFilePageState extends ConsumerState<ImageFilePage> {
         mimeType = 'image/png';
       }
 
+      final box = ctx.findRenderObject() as RenderBox?;
+      final pos = box!.localToGlobal(Offset.zero) & box.size;
+
       Share.shareXFiles(
         [XFile(downloadFile.file.path, mimeType: mimeType)],
         subject: 'Image ${widget.file.name}',
+        sharePositionOrigin: pos,
       ).ignore();
     } catch (e) {
       ref.read(snackBarServiceProvider).show(SnackBarConfig(

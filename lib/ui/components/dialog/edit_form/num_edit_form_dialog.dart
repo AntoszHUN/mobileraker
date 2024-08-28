@@ -3,19 +3,17 @@
  * All rights reserved.
  */
 
-import 'dart:math';
-
 import 'package:common/service/ui/dialog_service_interface.dart';
+import 'package:common/ui/dialog/mobileraker_dialog.dart';
 import 'package:common/util/extensions/object_extension.dart';
-import 'package:common/util/logger.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:geekyants_flutter_gauges/geekyants_flutter_gauges.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mobileraker/service/ui/dialog_service_impl.dart';
+
+import '../../range_edit_slider.dart';
 
 part 'num_edit_form_dialog.freezed.dart';
 
@@ -74,14 +72,14 @@ class _NumberEditDialogState extends ConsumerState<_NumberEditDialog> {
     _value = widget.request.data!.current;
 
     _controller.addListener(() {
-      logger.i('Controller changed: ${_controller.text}');
+      // logger.i('Controller changed: ${_controller.text}');
       setState(() {
         _validation = _validate(_controller.text);
         if (_isValid) {
           __value = num.tryParse(_controller.text) ?? 0;
         }
       });
-      logger.i('Validation: $_validation');
+      // logger.i('Validation: $_validation');
       // setState(() {
       //   if (_isValid) {
       //     _value = num.tryParse(_controller.text) ?? 0;
@@ -115,49 +113,54 @@ class _NumberEditDialogState extends ConsumerState<_NumberEditDialog> {
   Widget build(BuildContext context) {
     var themeData = Theme.of(context);
 
-    return Dialog(
-      child: Padding(
-        padding: const EdgeInsets.all(15.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min, // To make the card compact
-          children: <Widget>[
-            Text(widget.request.title!, style: themeData.textTheme.titleLarge),
-            AnimatedCrossFade(
+    return MobilerakerDialog(
+      footer: Row(
+        // mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          TextButton(
+            onPressed: onFormDecline,
+            child: Text(widget.request.dismissLabel ?? tr('general.cancel')),
+          ),
+          IconButton(
+            onPressed: toggleVariant.only(_isValid),
+            color: _isValid ? themeData.textTheme.bodySmall?.color : themeData.disabledColor,
+            iconSize: 18,
+            icon: AnimatedSwitcher(
               duration: kThemeAnimationDuration,
-              crossFadeState: DialogType.rangeEdit == _type ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-              firstChild: _RangeEditSlider(value: _value, args: widget.args, onChanged: _onSliderChanged),
-              secondChild: _NumField(controller: _controller, args: widget.args, errorText: _validation),
+              transitionBuilder: (child, anim) => RotationTransition(
+                turns: Tween<double>(begin: 0.5, end: 1).animate(anim),
+                child: ScaleTransition(scale: anim, child: child),
+              ),
+              child: Icon(_type == DialogType.rangeEdit ? Icons.text_fields : Icons.straighten),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton(
-                  onPressed: onFormDecline,
-                  child: Text(widget.request.cancelBtn ?? tr('general.cancel')),
-                ),
-                IconButton(
-                  onPressed: toggleVariant.only(_isValid),
-                  color: _isValid ? themeData.textTheme.bodySmall?.color : themeData.disabledColor,
-                  iconSize: 18,
-                  icon: AnimatedSwitcher(
-                    duration: kThemeAnimationDuration,
-                    transitionBuilder: (child, anim) => RotationTransition(
-                      turns: Tween<double>(begin: 0.5, end: 1).animate(anim),
-                      child: ScaleTransition(scale: anim, child: child),
-                    ),
-                    child: Icon(_type == DialogType.rangeEdit ? Icons.text_fields : Icons.straighten),
-                  ),
-                ),
-                TextButton(
-                  onPressed: onFormConfirm.only(_isValid),
-                  child: Text(
-                    widget.request.confirmBtn ?? tr('general.confirm'),
-                  ),
-                ),
-              ],
+          ),
+          TextButton(
+            onPressed: onFormConfirm.only(_isValid),
+            child: Text(
+              widget.request.actionLabel ?? tr('general.confirm'),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min, // To make the card compact
+        children: <Widget>[
+          Text(widget.request.title!, style: themeData.textTheme.titleLarge),
+          if (widget.request.body != null) Text(widget.request.body!, style: themeData.textTheme.bodySmall),
+          AnimatedCrossFade(
+            duration: kThemeAnimationDuration,
+            crossFadeState: DialogType.rangeEdit == _type ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+            firstChild: RangeEditSlider(
+              value: _value,
+              lowerLimit: widget.args.min,
+              upperLimit: widget.args.max ?? 100,
+              decimalPlaces: widget.args.fraction,
+              onChanged: _onSliderChanged,
+            ),
+            secondChild: _NumField(controller: _controller, args: widget.args, errorText: _validation),
+          ),
+        ],
       ),
     );
   }
@@ -213,118 +216,6 @@ class _NumField extends StatelessWidget {
     if (args.max == null) return 'Enter a value of at least ${args.min}';
 
     return 'Enter a value between ${args.min} and ${args.max}';
-  }
-}
-
-class _RangeEditSlider extends HookWidget {
-  const _RangeEditSlider({
-    super.key,
-    required this.value,
-    required this.args,
-    required this.onChanged,
-  });
-
-  final num value;
-  final NumberEditDialogArguments args;
-  final void Function(num) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final lowerLimit = args.min.toDouble();
-    final upperLimit = args.max?.toDouble() ?? 100.0;
-
-    final numberFormat =
-        NumberFormat.decimalPatternDigits(locale: context.locale.toStringWithSeparator(), decimalDigits: args.fraction);
-
-    final themeData = Theme.of(context);
-    return Column(
-      children: [
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: Row(
-            children: [
-              InkWell(
-                customBorder: const CircleBorder(),
-                onTap: () {
-                  onChanged(max(lowerLimit, value - 1));
-                },
-                onLongPress: () {
-                  onChanged(lowerLimit);
-                },
-                child: const Padding(
-                  padding: EdgeInsets.all(12.0),
-                  child: Icon(Icons.remove),
-                ),
-              ),
-              const Spacer(),
-              Text(numberFormat.format(value)),
-              const Spacer(),
-              InkWell(
-                customBorder: const CircleBorder(),
-                onTap: () {
-                  num t = value + 1;
-                  if (t > (upperLimit)) {
-                    t = upperLimit;
-                  }
-                  onChanged(t);
-                },
-                onLongPress: () {
-                  onChanged(upperLimit);
-                },
-                child: const Padding(
-                  padding: EdgeInsets.all(12.0),
-                  child: Icon(Icons.add),
-                ),
-              ),
-            ],
-          ),
-        ),
-        LinearGauge(
-          start: lowerLimit,
-          end: upperLimit,
-          customLabels: [
-            CustomRulerLabel(text: numberFormat.format(lowerLimit), value: lowerLimit),
-            CustomRulerLabel(text: numberFormat.format(upperLimit), value: upperLimit),
-          ],
-          valueBar: [
-            ValueBar(
-              enableAnimation: false,
-              valueBarThickness: 6.0,
-              value: value.toDouble(),
-              color: themeData.colorScheme.primary,
-              borderRadius: 5,
-            ),
-          ],
-          pointers: [
-            Pointer(
-              value: value.toDouble(),
-              shape: PointerShape.circle,
-              color: themeData.colorScheme.primary,
-              isInteractive: true,
-              enableAnimation: false,
-              height: 20,
-              // width: 10,
-              pointerAlignment: PointerAlignment.center,
-              onChanged: onChanged,
-            ),
-          ],
-          linearGaugeBoxDecoration: LinearGaugeBoxDecoration(
-            thickness: 5,
-            backgroundColor: themeData.colorScheme.primary.withOpacity(0.46),
-            borderRadius: 5,
-          ),
-          rulers: RulerStyle(
-            rulerPosition: RulerPosition.center,
-            showPrimaryRulers: false,
-            showSecondaryRulers: false,
-            showLabel: true,
-            labelOffset: 5,
-            textStyle: themeData.textTheme.bodySmall,
-          ),
-        ),
-      ],
-    );
   }
 }
 

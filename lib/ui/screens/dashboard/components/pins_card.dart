@@ -5,6 +5,7 @@
 
 import 'dart:math';
 
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:common/data/dto/config/config_output.dart';
 import 'package:common/data/dto/config/led/config_dumb_led.dart';
 import 'package:common/data/dto/config/led/config_led.dart';
@@ -20,7 +21,7 @@ import 'package:common/service/setting_service.dart';
 import 'package:common/service/ui/dialog_service_interface.dart';
 import 'package:common/ui/components/async_guard.dart';
 import 'package:common/ui/components/skeletons/card_title_skeleton.dart';
-import 'package:common/ui/components/skeletons/card_with_skeleton.dart';
+import 'package:common/ui/components/skeletons/horizontal_scroll_skeleton.dart';
 import 'package:common/util/extensions/async_ext.dart';
 import 'package:common/util/extensions/ref_extension.dart';
 import 'package:common/util/logger.dart';
@@ -50,6 +51,14 @@ part 'pins_card.g.dart';
 class PinsCard extends HookConsumerWidget {
   const PinsCard({super.key, required this.machineUUID});
 
+  static Widget preview() {
+    return const _Preview();
+  }
+
+  static Widget loading() {
+    return const _PinsCardLoading();
+  }
+
   final String machineUUID;
 
   @override
@@ -75,6 +84,23 @@ class PinsCard extends HookConsumerWidget {
   }
 }
 
+class _Preview extends HookWidget {
+  static const String _machineUUID = 'preview';
+
+  const _Preview({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    useAutomaticKeepAlive();
+    return ProviderScope(
+      overrides: [
+        _pinsCardControllerProvider(_machineUUID).overrideWith(_PinsCardPreviewController.new),
+      ],
+      child: const PinsCard(machineUUID: _machineUUID),
+    );
+  }
+}
+
 class _PinsCardLoading extends StatelessWidget {
   const _PinsCardLoading({super.key});
 
@@ -89,44 +115,11 @@ class _PinsCardLoading extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const CardTitleSkeleton(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Flexible(
-                        child: CardWithSkeleton(
-                          contentTextStyles: [
-                            themeData.textTheme.bodySmall,
-                            themeData.textTheme.headlineSmall,
-                          ],
-                        ),
-                      ),
-                      Flexible(
-                        child: CardWithSkeleton(
-                          contentTextStyles: [
-                            themeData.textTheme.bodySmall,
-                            themeData.textTheme.headlineSmall,
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 5),
-                    child: SizedBox(
-                      width: 30,
-                      height: 11,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            HorizontalScrollSkeleton(
+              contentTextStyles: [
+                themeData.textTheme.bodySmall,
+                themeData.textTheme.headlineSmall,
+              ],
             ),
             const SizedBox(height: 8),
           ],
@@ -232,8 +225,9 @@ class _Output extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                AutoSizeText(
                   beautifiedName,
+                  minFontSize: 8,
                   style: textTheme.bodySmall,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -260,8 +254,9 @@ class _Output extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              AutoSizeText(
                 beautifiedName,
+                minFontSize: 8,
                 style: textTheme.bodySmall,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -388,20 +383,23 @@ class _Led extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    beautifiedName,
-                    style: textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    statusText(led, ledConfig, context.locale.toStringWithSeparator()),
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                ],
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AutoSizeText(
+                      beautifiedName,
+                      minFontSize: 8,
+                      style: textTheme.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      statusText(led, ledConfig, context.locale.toStringWithSeparator()),
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                  ],
+                ),
               ),
               statusWidget(led, ledConfig),
             ],
@@ -440,31 +438,47 @@ class _FilamentSensor extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    beautifiedName,
-                    style: textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    switch (sensor) {
-                      FilamentSensor(enabled: true, filamentDetected: true) =>
-                        'pages.dashboard.control.pin_card.filament_sensor.detected'.tr(),
-                      FilamentSensor(enabled: true, filamentDetected: false) =>
-                        'pages.dashboard.control.pin_card.filament_sensor.not_detected'.tr(),
-                      _ => 'general.disabled'.tr(),
-                    },
-                    style: textTheme.headlineSmall,
-                  ),
-                ],
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AutoSizeText(
+                      beautifiedName,
+                      minFontSize: 8,
+                      style: textTheme.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      switch (sensor) {
+                        FilamentSensor(enabled: true, filamentDetected: true) =>
+                          'pages.dashboard.control.pin_card.filament_sensor.detected'.tr(),
+                        FilamentSensor(enabled: true, filamentDetected: false) =>
+                          'pages.dashboard.control.pin_card.filament_sensor.not_detected'.tr(),
+                        _ => 'general.disabled'.tr(),
+                      },
+                      style: textTheme.headlineSmall,
+                    ),
+                  ],
+                ),
               ),
-              Icon(
-                sensor.enabled ? Icons.sensors : Icons.sensors_off,
-                size: _iconSize,
-                // color: sensor.enabled ? Colors.green : Colors.white,
+              AnimatedSwitcher(
+                // duration: Duration(milliseconds: 5000),
+                duration: kThemeAnimationDuration,
+                transitionBuilder: (child, anim) => RotationTransition(
+                  turns: Tween<double>(begin: 0.5, end: 1).animate(anim),
+                  child: FadeTransition(opacity: anim, child: child),
+                ),
+                child: Icon(
+                  key: ValueKey(sensor),
+                  switch (sensor) {
+                    FilamentSensor(enabled: true, filamentDetected: false) => Icons.warning_amber,
+                    FilamentSensor(enabled: false) => Icons.sensors_off,
+                    _ => Icons.sensors,
+                  },
+                  size: _iconSize,
+                  // color: sensor.enabled ? Colors.green : Colors.white,
+                ),
               ),
             ],
           ),
@@ -563,8 +577,6 @@ class _PinsCardController extends _$PinsCardController {
     var result = await _dialogService.show(DialogRequest(
       type: _dialogMode,
       title: '${tr('general.edit')} ${beautifyName(pin.name)}',
-      cancelBtn: tr('general.cancel'),
-      confirmBtn: tr('general.confirm'),
       data: NumberEditDialogArguments(
         current: pin.value * (configOutput?.scale ?? 1),
         min: 0,
@@ -596,8 +608,6 @@ class _PinsCardController extends _$PinsCardController {
       var result = await _dialogService.show(DialogRequest(
         type: _dialogMode,
         title: '${tr('general.edit')} $name %',
-        cancelBtn: tr('general.cancel'),
-        confirmBtn: tr('general.confirm'),
         data: NumberEditDialogArguments(
           current: (led as DumbLed).color.asList().reduce(max) * 100.round(),
           min: 0,
@@ -643,6 +653,53 @@ class _PinsCardController extends _$PinsCardController {
 
       _printerService.led(led.name, pixel);
     }
+  }
+}
+
+class _PinsCardPreviewController extends _PinsCardController {
+  @override
+  Stream<_Model> build(String machineUUID) {
+    state = const AsyncValue.data(_Model(
+      klippyCanReceiveCommands: true,
+      elements: [
+        OutputPin(name: 'Preview Pin', value: 0),
+        DumbLed(name: 'Preview Led'),
+      ],
+      ledConfig: {
+        'preview led': ConfigDumbLed(
+          name: 'preview led',
+        ),
+      },
+      pinConfig: {
+        'preview pin': ConfigOutput(
+          name: 'preview pin',
+          pwm: true,
+          scale: 1,
+        ),
+      },
+    ));
+
+    return const Stream.empty();
+  }
+
+  @override
+  Future<void> onEditPin(OutputPin pin) async {
+    // Do nothing in preview mode
+  }
+
+  @override
+  void onUpdateBinaryPin(OutputPin pin, bool value) {
+    // Do nothing in preview mode
+  }
+
+  @override
+  Future<void> onUpdateFilamentSensor(FilamentSensor sensor, bool value) async {
+    // Do nothing in preview mode
+  }
+
+  @override
+  Future<void> onEditLed(Led led) async {
+    // Do nothing in preview mode
   }
 }
 

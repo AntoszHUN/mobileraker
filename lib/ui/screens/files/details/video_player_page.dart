@@ -7,6 +7,7 @@ import 'dart:async';
 
 import 'package:appinio_video_player/appinio_video_player.dart';
 import 'package:common/data/dto/files/generic_file.dart';
+import 'package:common/data/model/file_operation.dart';
 import 'package:common/network/dio_provider.dart';
 import 'package:common/service/moonraker/file_service.dart';
 import 'package:common/service/payment_service.dart';
@@ -122,18 +123,23 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage> {
       appBar: AppBar(
         title: Text(widget.file.name),
         actions: [
-          IconButton(
-            onPressed: loading ? null : _startDownload,
-            icon: const Icon(Icons.share),
-          ),
+          Builder(builder: (context) {
+            return IconButton(
+              onPressed: loading ? null : () => _startDownload(context),
+              icon: const Icon(Icons.share),
+            );
+          }),
         ],
       ),
       body: SafeArea(child: SizedBox.expand(child: body)),
     );
   }
 
-  _startDownload() {
+  _startDownload(BuildContext ctx) {
     var isSupporter = ref.read(isSupporterProvider);
+
+    final box = ctx.findRenderObject() as RenderBox?;
+    final pos = box!.localToGlobal(Offset.zero) & box.size;
 
     setState(() {
       loading = true;
@@ -147,7 +153,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage> {
     downloadStreamSub?.cancel();
     downloadStreamSub = ref.read(fileServiceSelectedProvider).downloadFile(filePath: widget.file.absolutPath).listen(
       (event) async {
-        if (event is FileDownloadProgress) {
+        if (event is FileOperationProgress) {
           setState(() {
             fileDownloadProgress = event.progress;
           });
@@ -165,6 +171,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage> {
         await Share.shareXFiles(
           [XFile(downloadFile.file.path, mimeType: 'video/mp4')],
           subject: 'Video ${widget.file.name}',
+          sharePositionOrigin: pos,
         );
         logger.i('Done with sharing');
         setState(() {

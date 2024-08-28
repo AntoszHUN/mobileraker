@@ -6,12 +6,14 @@
 import 'package:common/network/json_rpc_client.dart';
 import 'package:common/ui/animation/SizeAndFadeTransition.dart';
 import 'package:common/ui/components/info_card.dart';
+import 'package:common/ui/components/responsive_limit.dart';
 import 'package:common/ui/components/supporter_only_feature.dart';
 import 'package:common/util/extensions/object_extension.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:easy_stepper/easy_stepper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_icons/flutter_icons.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -57,14 +59,9 @@ class PrinterAddPage extends HookConsumerWidget {
                   _AddPrinterStepperFlow(),
                   Divider(),
                   Expanded(
-                    child: CustomScrollView(
+                    child: SingleChildScrollView(
                       physics: ClampingScrollPhysics(),
-                      slivers: [
-                        SliverFillRemaining(
-                          hasScrollBody: false,
-                          child: _StepperBody(),
-                        ),
-                      ],
+                      child: _StepperBody(),
                     ),
                   ),
                   _StepperFooter(),
@@ -95,7 +92,7 @@ class _StepperBody extends ConsumerWidget {
             sizeAndFadeFactor: anim,
             child: child,
           ),
-          child: stepperBody(model.step, model.isExpert),
+          child: Center(child: ResponsiveLimit(child: stepperBody(model.step, model.isExpert))),
         ),
       ),
     );
@@ -150,6 +147,8 @@ class _AddPrinterStepperFlow extends HookConsumerWidget {
       activeStep: model.step,
       showLoadingAnimation: false,
       enableStepTapping: model.step != 3,
+      padding: const EdgeInsets.only(top: 8, left: 8, right: 8, bottom: 0),
+      showScrollbar: false,
       steps: [
         EasyStep(
           title: tr('pages.printer_add.steps.mode'),
@@ -183,26 +182,26 @@ class _InputModeStepScreen extends ConsumerWidget {
 
     var themeData = Theme.of(context);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: BoxConstraints.loose(const Size(256, 256)),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: SvgPicture.asset(
-                'assets/vector/undraw_maker_launch_re_rq81.svg',
-                // 'assets/vector/undraw_choice_re_2hkp.svg',
-                // 'assets/vector/undraw_select_option_re_u4qn.svg',
-              ),
+        ConstrainedBox(
+          constraints: BoxConstraints.loose(const Size(256, 256)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: SvgPicture.asset(
+              'assets/vector/undraw_maker_launch_re_rq81.svg',
+              alignment: Alignment.center,
             ),
           ),
         ),
-        Text(
-          'pages.printer_add.select_mode.title',
-          style: themeData.textTheme.labelLarge,
-        ).tr(),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'pages.printer_add.select_mode.title',
+            style: themeData.textTheme.labelLarge,
+          ).tr(),
+        ),
         Text(
           'pages.printer_add.select_mode.body',
           textAlign: TextAlign.justify,
@@ -260,8 +259,12 @@ class _SimpleUrlInputStepScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    var simpleFormState = ref.watch(simpleFormControllerProvider);
-    var simpleFormController = ref.watch(simpleFormControllerProvider.notifier);
+    final simpleFormState = ref.watch(simpleFormControllerProvider);
+    final simpleFormController = ref.watch(simpleFormControllerProvider.notifier);
+
+    final nameFocusNode = useFocusNode();
+    final addFocusNode = useFocusNode();
+    final apiFocusNode = useFocusNode();
 
     var scheme = Theme.of(context).colorScheme;
     return Column(
@@ -277,6 +280,7 @@ class _SimpleUrlInputStepScreen extends HookConsumerWidget {
         ),
         SectionHeader(title: tr('pages.setting.general.title')),
         FormBuilderTextField(
+          focusNode: nameFocusNode,
           keyboardType: TextInputType.text,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           decoration: InputDecoration(
@@ -285,8 +289,11 @@ class _SimpleUrlInputStepScreen extends HookConsumerWidget {
           name: 'simple.name',
           initialValue: tr('pages.printer_add.initial_name'),
           validator: FormBuilderValidators.compose([FormBuilderValidators.required()]),
+          onSubmitted: (txt) => simpleFormController.focusNext('simple.name', nameFocusNode, addFocusNode),
+          textInputAction: TextInputAction.next,
         ),
         FormBuilderTextField(
+          focusNode: addFocusNode,
           keyboardType: TextInputType.url,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           // initialValue: simpleFormState.httpUri?.skipScheme(),
@@ -307,11 +314,14 @@ class _SimpleUrlInputStepScreen extends HookConsumerWidget {
             FormBuilderValidators.url(requireTld: false),
             MobilerakerFormBuilderValidator.simpleUrl(),
           ]),
+          onSubmitted: (txt) => simpleFormController.focusNext('simple.url', addFocusNode, apiFocusNode),
+          textInputAction: TextInputAction.next,
         ),
         Row(
           children: [
             Flexible(
               child: FormBuilderTextField(
+                focusNode: apiFocusNode,
                 keyboardType: TextInputType.text,
                 decoration: InputDecoration(
                   labelText: 'pages.printer_edit.general.moonraker_api_key'.tr(),
@@ -319,6 +329,8 @@ class _SimpleUrlInputStepScreen extends HookConsumerWidget {
                   helperMaxLines: 3,
                 ),
                 name: 'simple.apikey',
+                textInputAction: TextInputAction.done,
+                onSubmitted: (txt) => simpleFormController.proceed(),
               ),
             ),
             IconButton(
@@ -361,6 +373,11 @@ class _AdvancedInputStepScreen extends HookConsumerWidget {
     var advancedFormState = ref.watch(advancedFormControllerProvider);
     var advancedFormController = ref.watch(advancedFormControllerProvider.notifier);
 
+    final nameFocusNode = useFocusNode();
+    final addressFocusNode = useFocusNode();
+    final timeoutFocusNode = useFocusNode();
+    final apiFocusNode = useFocusNode();
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -375,6 +392,7 @@ class _AdvancedInputStepScreen extends HookConsumerWidget {
         ),
         SectionHeader(title: tr('pages.setting.general.title')),
         FormBuilderTextField(
+          focusNode: nameFocusNode,
           keyboardType: TextInputType.text,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           decoration: InputDecoration(
@@ -383,8 +401,11 @@ class _AdvancedInputStepScreen extends HookConsumerWidget {
           name: 'advanced.name',
           initialValue: tr('pages.printer_add.initial_name'),
           validator: FormBuilderValidators.compose([FormBuilderValidators.required()]),
+          onSubmitted: (txt) => advancedFormController.focusNext('advanced.name', nameFocusNode, addressFocusNode),
+          textInputAction: TextInputAction.next,
         ),
         FormBuilderTextField(
+          focusNode: addressFocusNode,
           decoration: InputDecoration(
             labelText: 'pages.printer_edit.general.printer_addr'.tr(),
             hintText: 'E.g.: 192.1.1.1',
@@ -392,7 +413,6 @@ class _AdvancedInputStepScreen extends HookConsumerWidget {
           ),
           name: 'advanced.http',
           autovalidateMode: AutovalidateMode.onUserInteraction,
-          onChanged: advancedFormController.onHttpUriChanged,
           // initialValue: advancedFormState.httpUri?.toString(),
           validator: FormBuilderValidators.compose([
             FormBuilderValidators.required(),
@@ -402,25 +422,11 @@ class _AdvancedInputStepScreen extends HookConsumerWidget {
               protocols: ['http', 'https'],
             ),
           ]),
+          onSubmitted: (txt) => advancedFormController.focusNext('advanced.http', addressFocusNode, timeoutFocusNode),
+          textInputAction: TextInputAction.next,
         ),
         FormBuilderTextField(
-          decoration: InputDecoration(
-            labelText: 'pages.printer_edit.general.ws_addr'.tr(),
-            hintText: advancedFormState.wsUriFromHttpUri?.toString() ?? 'E.g.: 192.1.1.1/websocket',
-            helperText: tr('pages.printer_add.advanced_form.ws_helper'),
-          ),
-          name: 'advanced.ws',
-          autovalidateMode: AutovalidateMode.onUserInteraction,
-          // initialValue: advancedFormState.wsUri?.toString(),
-          validator: FormBuilderValidators.compose([
-            FormBuilderValidators.url(
-              requireTld: false,
-              requireProtocol: false,
-              protocols: ['ws', 'wss'],
-            ),
-          ]),
-        ),
-        FormBuilderTextField(
+          focusNode: timeoutFocusNode,
           keyboardType: const TextInputType.numberWithOptions(),
           decoration: InputDecoration(
             labelText: 'pages.printer_edit.general.timeout_label'.tr(),
@@ -437,6 +443,9 @@ class _AdvancedInputStepScreen extends HookConsumerWidget {
             FormBuilderValidators.max(600),
             FormBuilderValidators.integer(),
           ]),
+          onSubmitted: (txt) =>
+              advancedFormController.focusNext('advanced.localTimeout', timeoutFocusNode, apiFocusNode),
+          textInputAction: TextInputAction.next,
         ),
         SectionHeader(
           title: tr('pages.printer_add.advanced_form.section_security'),
@@ -445,6 +454,7 @@ class _AdvancedInputStepScreen extends HookConsumerWidget {
           children: [
             Flexible(
               child: FormBuilderTextField(
+                focusNode: apiFocusNode,
                 keyboardType: TextInputType.text,
                 decoration: InputDecoration(
                   labelText: 'pages.printer_edit.general.moonraker_api_key'.tr(),
@@ -452,6 +462,8 @@ class _AdvancedInputStepScreen extends HookConsumerWidget {
                   helperMaxLines: 3,
                 ),
                 name: 'advanced.apikey',
+                onSubmitted: (txt) => advancedFormController.focusNext('advanced.localTimeout', apiFocusNode),
+                textInputAction: TextInputAction.next,
               ),
             ),
             IconButton(
@@ -462,11 +474,12 @@ class _AdvancedInputStepScreen extends HookConsumerWidget {
             ),
           ],
         ),
-        Expanded(
-            child: SslSettings(
-          initialCertificateDER: advancedFormState.pinnedCertificateDER,
-          initialTrustSelfSigned: advancedFormState.trustUntrustedCertificate,
-        )),
+        Flexible(
+          child: SslSettings(
+            initialCertificateDER: advancedFormState.pinnedCertificateDER,
+            initialTrustSelfSigned: advancedFormState.trustUntrustedCertificate,
+          ),
+        ),
         HttpHeaders(initialValue: advancedFormState.headers),
       ],
     );
@@ -588,34 +601,33 @@ class _ConfirmationStepScreen extends ConsumerWidget {
       return SpinKitWave(color: themeData.colorScheme.primary);
     }
 
-    return SizedBox(
-      width: double.infinity,
-      child: Column(
-        children: [
-          Text(
-            'pages.printer_add.confirmed.title',
-            style: themeData.textTheme.titleLarge,
-            textAlign: TextAlign.center,
-          ).tr(args: [model.machineToAdd!.name]),
-          Flexible(
-            child: ConstrainedBox(
-              constraints: BoxConstraints.loose(const Size(256, 256)),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: SvgPicture.asset(
-                  'assets/vector/undraw_astronaut_re_8c33.svg',
-                  // 'assets/vector/undraw_confirmed_re_sef7.svg',
-                ),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'pages.printer_add.confirmed.title',
+          style: themeData.textTheme.titleLarge,
+          textAlign: TextAlign.center,
+        ).tr(args: [model.machineToAdd!.name]),
+        Flexible(
+          child: ConstrainedBox(
+            constraints: BoxConstraints.loose(const Size(256, 256)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: SvgPicture.asset(
+                'assets/vector/undraw_astronaut_re_8c33.svg',
+                // 'assets/vector/undraw_confirmed_re_sef7.svg',
               ),
             ),
           ),
-          FilledButton.tonalIcon(
-            onPressed: controller.goToDashboard,
-            icon: const Icon(FlutterIcons.printer_3d_nozzle_mco),
-            label: const Text('pages.printer_add.confirmed.to_dashboard').tr(),
-          ),
-        ],
-      ),
+        ),
+        FilledButton.tonalIcon(
+          onPressed: controller.goToDashboard,
+          icon: const Icon(FlutterIcons.printer_3d_nozzle_mco),
+          label: const Text('pages.printer_add.confirmed.to_dashboard').tr(),
+        ),
+      ],
     );
   }
 }

@@ -52,7 +52,16 @@
     "start": "Start",
     "repeat": "Repeat",
     "load_more": "Load more",
-    "archived": "Archived"
+    "archived": "Archived",
+    "leave": "Leave",
+    "export": "Export",
+    "import": "Import",
+    "current": "Current",
+    "load": "Load",
+    "unload": "Unload",
+    "discard": "Discard",
+    "hide": "Hide",
+    "finish": "Finish"
   },
   "pages": {
     "dashboard": {
@@ -86,7 +95,8 @@
         },
         "cam_card": {
           "webcam": "Webcam",
-          "fullscreen": "Fullscreen"
+          "fullscreen": "Fullscreen",
+          "error_connecting": "Error connecting to {}.\nPlease check the connection settings and ensure the webcam is online."
         },
         "temp_card": {
           "title": "Temperature Controls",
@@ -157,7 +167,9 @@
         },
         "macro_card": {
           "title": "Gcode - Macros",
-          "no_macros": "No macros are currently visible in this group"
+          "no_macros": "No macros are currently visible in this group",
+          "add_grp_hint": "You can create different groups to organize your macros. Just go to the printer settings and add a new group.",
+          "show_all_tooltip": "Show all macros"
         },
         "pin_card": {
           "title_misc": "Miscellaneous",
@@ -210,18 +222,113 @@
         }
       }
     },
+    "customizing_dashboard": {
+      "title": "Personalize Dashboard",
+      "cancel_confirm": {
+        "title": "Discard changes?",
+        "body": "Are you sure you want to leave the layout editing mode?\nAll changes will be lost. To save your changes, press the save button."
+      },
+      "add_card": "Add Card",
+      "remove_page": "Remove Page",
+      "saved_snack": {
+        "title": "Layout saved!",
+        "body": "Your changes have been saved."
+      },
+      "cant_remove_snack": {
+        "title": "Can't remove page!",
+        "body": "You need at least 2 pages to be able to remove one."
+      },
+      "confirm_removal": {
+        "title": "Remove Page?",
+        "body": "Are you sure you want to remove this page?"
+      },
+      "editing_card": {
+        "title": "Editing Mode",
+        "body": "You can now reorder, add and remove cards and pages. All cards show preview data."
+      },
+      "error_save_snack": {
+        "title": "Error saving layout!",
+        "body": "An error occurred while trying to save the layout."
+      },
+      "error_no_components": {
+        "title": "Empty Layout!",
+        "body": "You have not added any widgets. Add at least one widget to save the layout."
+      }
+    },
     "files": {
       "title": "Files",
-      "search_files": "Search files",
-      "clear_search": "Clear search",
-      "name": "Name",
-      "last_mod": "Last modified",
-      "last_printed": "Last printed",
-      "not_printed": "Not printed",
-      "fetching_files": "@:general.fetching Files…",
-      "no_files_found": "No files found!",
+      "empty_folder": {
+        "title": "This folder is empty",
+        "subtitle": "No files found"
+      },
+      "sort_by": {
+        "sort_by": "Sort by",
+        "name": "Name",
+        "last_modified": "Last modified",
+        "last_printed": "Last printed",
+        "file_size": "Size"
+      },
+      "file_actions": {
+        "download": "Download",
+        "delete": "Delete",
+        "copy": "Copy",
+        "move": "Move",
+        "rename": "Rename",
+        "create_file": "Create File",
+        "create_folder": "Create Folder",
+        "upload": "Upload File",
+        "upload_bulk": "Upload Files"
+      },
+      "gcode_file_actions": {
+        "submit": "Submit Print Job",
+        "preheat": "Preheat",
+        "enqueue": "Add to Print Queue"
+      },
+      "file_operation": {
+        "download_canceled": {
+          "title": "Download canceled",
+          "body": "The download was canceled."
+        },
+        "download_failed": {
+          "title": "Download failed",
+          "body": "An error occurred while trying to download the file. Please retry later."
+        },
+        "upload_canceled": {
+          "title": "Upload canceled",
+          "body": "The upload was canceled."
+        },
+        "upload_success": {
+          "title": "Upload successful",
+          "body": "The file was successfully uploaded."
+        },
+        "upload_failed": {
+          "title": "Upload failed",
+          "body": "An error occurred while trying to upload the file. Please retry later."
+        },
+        "copy_created": {
+          "title": "Copy created",
+          "body": "The copy was successfully created at '{}'."
+        }
+      },
+      "search_files": "Search in folder",
+      "search": {
+        "clear_search": "Clear search",
+        "waiting": "Waiting to search!",
+        "no_results": {
+          "title": "No files found",
+          "subtitle": "Try a different search term"
+        }
+      },
+      "cancel_fab": {
+        "upload": "Cancel Upload",
+        "download": "Cancel Download"
+      },
+      "move_here": "Move here",
+      "copy_here": "Copy here",
       "no_matches_file_pattern": "Only letters, numbers, underscores, dashes and dots are allowed!",
-      "file_name_in_use": "File name already in use!",
+      "gcode_tab": "GCodes",
+      "config_tab": "Configs",
+      "timelapse_tab": "Timelapses",
       "details": {
         "preheat": "Preheat",
         "print": "Print",
@@ -293,7 +400,11 @@
         "filament_sensor_dialog": "Show Filament Sensor Alerts",
         "filament_sensor_dialog_hint": "Show a dialog when a filament sensor is triggered",
         "confirm_gcode": "Confirm Macro Execution",
-        "confirm_gcode_hint": "Always show a confirmation dialog before executing a GCode-Macro on the dashboard"
+        "confirm_gcode_hint": "Always show a confirmation dialog before executing a GCode-Macro on the dashboard",
+        "eta_sources": "ETA Calculation",
+        "eta_sources_hint": "Select the source that should be used for the ETA calculation",
+        "medium_ui": "Tablet UI",
+        "medium_ui_hint": "Toggle if the tablet UI should be used on larger screens or landscape mode"
       },
       "notification": {
         "title": "Notification",
@@ -382,7 +493,17 @@
         "feedrate": "Extruder velocity",
         "feedrate_short": "Velocity",
         "steps_extrude": "Extrude steps",
-        "steps_extrude_short": "@:pages.printer_edit.extruders.steps_extrude"
+        "steps_extrude_short": "@:pages.printer_edit.extruders.steps_extrude",
+        "filament": {
+          "loading_distance": "Extruder Nozzle Distance",
+          "loading_distance_helper": "Distance from the nozzle to the extruder. Used for (un)loading filament",
+          "loading_speed": "(Un)Loading Speed",
+          "loading_speed_helper": "Speed for loading and unloading filament from the nozzle to the extruder",
+          "purge_amount": "Purge Length",
+          "purge_amount_helper": "Length of filament to purge",
+          "purge_speed": "Purge Speed",
+          "purge_speed_helper": "Speed for purging filament"
+        }
       },
       "cams": {
         "target_fps": "Target FPS",
@@ -410,7 +531,8 @@
           "one": "Moved one macro to default group!",
           "two": "Moved two macro to default group!",
           "other": "Moved {} macros to default group!"
-        }
+        },
+        "macro_removed": "The macro was not found and will be removed automatically shortly"
       },
       "presets": {
         "no_presets": "No Presets added!",
@@ -545,8 +667,14 @@
       "card_title": "GCode Console",
       "no_entries": "No cached commands found",
       "fetching_console": "@:general.fetching console entries…",
+      "macro_suggestions": "G-Code Suggestions",
+      "no_suggestions": "No suggestions found!",
       "command_input": {
         "hint": "Enter console command"
+      },
+      "provider_error": {
+        "title": "Error fetching Console Data",
+        "body": "An error occurred while trying to fetch the console data. Please retry later!"
       }
     },
     "overview": {
@@ -712,7 +840,9 @@
       "job_queue": "Sorry, the Job Queue is only available to Supporters.",
       "timelaps_share": "Sorry, sharing timelapses is only available to Supporters.",
       "printer_theme": "Sorry, printer specific themes are only available to Supporters.",
-      "spoolman_page": "Sorry, the Spoolman page is only available to Supporters."
+      "spoolman_page": "Sorry, the Spoolman page is only available to Supporters.",
+      "custom_dashboard": "Sorry, customizing the dashboard is only available to Supporters.",
+      "full_file_management": "Sorry, full file management (Download, Upload…) is only available to Supporters."
     },
     "machine_deletion_warning": {
       "title": "Machine Deletion",
@@ -755,11 +885,23 @@
       "title": "Rename Folder",
       "label": "Folder Name"
     },
+    "copy_folder": {
+      "title": "Copy Folder",
+      "label": "Folder Name"
+    },
     "delete_file": {
       "description": "Confirm deletion of file '{}'."
     },
     "rename_file": {
       "title": "Rename File",
+      "label": "File Name"
+    },
+    "copy_file": {
+      "title": "Copy File",
+      "label": "File Name"
+    },
+    "create_file": {
+      "title": "Create File",
       "label": "File Name"
     },
     "exclude_object": {
@@ -818,6 +960,14 @@
       "printer_theme_perk": {
         "title": "Printer based Themes",
         "subtitle": "Select a different theme for each printer!"
+      },
+      "custom_dashboard_perk": {
+        "title": "Custom Dashboard",
+        "subtitle": "Customize the dashboard to your liking!"
+      },
+      "full_file_management_perk": {
+        "title": "Full File Management",
+        "subtitle": "Unlock the full file management capabilities of Mobileraker!"
       }
     },
     "bed_screw_adjust": {
@@ -866,6 +1016,67 @@
       "title": "Screws Tilt Adjust",
       "base": "Base",
       "hint": "The dialog helps you adjust the screws of the bed. For each screw you are seeing the required adjustments as clock in HH:MM format. For example, 01:15 indicates a full rotation plus a quarter turn in the direction the icon indicates."
+    },
+    "dashboard_page_settings": {
+      "title": "Dashboard Page Settings",
+      "icon_label": "Select the icon for the page:"
+    },
+    "filament_switch": {
+      "title": {
+        "load": "Filament load Wizard",
+        "unload": "Filament unload Wizard"
+      },
+      "controls": {
+        "heat_up": "Heat-Up",
+        "change_temp": "Change Temp",
+        "purge": "Purge",
+        "repeat_load": "Repeat Load",
+        "repeat_unload": "Repeat Unload",
+        "repeat_purge": "Repeat Purge"
+      },
+      "steps": {
+        "set_temps": {
+          "title": "Filament Temperature",
+          "subtitle": "Select target temperature"
+        },
+        "heat_up": {
+          "title": "Toolhead Heating",
+          "subtitle": "Heating up to target temperature"
+        },
+        "move": {
+          "title": {
+            "load": "Load Filament",
+            "unload": "Unload Filament"
+          },
+          "subtitle": {
+            "load": {
+              "idle": "Insert filament into the extruder",
+              "processing": "Loading filament...",
+              "processed": "Did the filament reach the nozzle? Repeat if necessary"
+            },
+            "unload": {
+              "idle": "Move filament out of extruder",
+              "processing": "Unloading filament...",
+              "processed": "Did the filament come out of the extruder? Repeat if necessary"
+            }
+          }
+        },
+        "purge": {
+          "title": "Purge Filament",
+          "subtitle": {
+            "idle": "Load filament into Nozzle",
+            "processing": "Purging filament...",
+            "processed": "Verify purged material is clean. Repeat if necessary"
+          }
+        },
+        "tip_form": {
+          "title": "Tip Forming",
+          "subtitle": "Forming a filament tip"
+        }
+      }
+    },
+    "heater_temperature": {
+      "title": "{} Temperature [°C]"
     }
   },
   "bottom_sheets": {
@@ -970,7 +1181,8 @@
       "no_profile_active": "No profile active",
       "no_mesh": "No Mesh",
       "clear_loaded_profile": "Clear loaded profile",
-      "range_between_highest_and_lowest_point": "Range between highest and lowest point"
+      "range_between_highest_and_lowest_point": "Range between highest and lowest point",
+      "cant_render": "Rendering of the bed mesh for the printer's kinematics is not supported yet."
     },
     "select_spool": {
       "header": {
@@ -1005,6 +1217,38 @@
           "service_stop": "You are about to stop the service '{}'. Are you sure you want to proceed?"
         }
       }
+    },
+    "dashboard_cards": {
+      "title": "Add a card",
+      "subtitle": "Select a card to add to the dashboard"
+    },
+    "dashboard_layout": {
+      "title": "Dashboard Layout",
+      "subtitle": "Current Layout:",
+      "available_layouts": {
+        "label": "Available Layouts:",
+        "empty": "No layouts available",
+        "add_empty": "Add Empty Layout"
+      },
+      "layout_preview": {
+        "not_saved": "Not saved"
+      },
+      "rename_layout": {
+        "title": "Rename Layout",
+        "label": "Layout Name"
+      },
+      "delete_layout": {
+        "title": "Delete Layout",
+        "body": "Are you sure you want to delete the layout {}?\nAll machines using this layout will fall back to the default layout."
+      },
+      "import_snackbar": {
+        "title": "Layout imported!",
+        "body": "Make sure to hit the save button to apply the changes."
+      },
+      "falsy_import_snackbar": {
+        "title": "Error while importing layout!",
+        "body": "The layout could not be imported. Please make sure the clipboard contains a valid layout."
+      }
     }
   },
   "klipper_state": {
@@ -1016,6 +1260,14 @@
     "unauthorized": "Unauthorized",
     "initializing": "Initializing",
     "not_connected": "Moonraker cannot establish a connection with Klipper. Please verify that Klipper is running on your system."
+  },
+  "print_state": {
+    "standby": "Standby",
+    "printing": "Printing",
+    "paused": "Paused",
+    "complete": "Complete",
+    "cancelled": "Cancelled",
+    "error": "Error"
   },
   "theme_mode": {
     "light": "Light",
@@ -1043,7 +1295,8 @@
   },
   "form_validators": {
     "simple_url": "Input only allows URL components: Hostname and Port",
-    "disallow_mdns": "mDNS (.local) addresses are not supported"
+    "disallow_mdns": "mDNS (.local) addresses are not supported",
+    "file_name_in_use": "File name already in use"
   },
   "date": {
     "year": {

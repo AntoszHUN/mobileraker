@@ -5,13 +5,14 @@
 
 import 'dart:math';
 
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:common/data/dto/config/fan/config_temperature_fan.dart';
 import 'package:common/data/dto/machine/fans/temperature_fan.dart';
 import 'package:common/data/dto/machine/heaters/extruder.dart';
 import 'package:common/data/dto/machine/heaters/generic_heater.dart';
 import 'package:common/data/dto/machine/heaters/heater_bed.dart';
 import 'package:common/data/dto/machine/heaters/heater_mixin.dart';
-import 'package:common/data/dto/machine/printer.dart';
+import 'package:common/data/dto/machine/printer_builder.dart';
 import 'package:common/data/dto/machine/sensor_mixin.dart';
 import 'package:common/data/dto/machine/temperature_sensor.dart';
 import 'package:common/data/dto/machine/z_thermal_adjust.dart';
@@ -23,6 +24,7 @@ import 'package:common/service/ui/dialog_service_interface.dart';
 import 'package:common/ui/components/async_guard.dart';
 import 'package:common/util/extensions/async_ext.dart';
 import 'package:common/util/extensions/double_extension.dart';
+import 'package:common/util/extensions/number_format_extension.dart';
 import 'package:common/util/extensions/ref_extension.dart';
 import 'package:common/util/logger.dart';
 import 'package:common/util/misc.dart';
@@ -48,10 +50,10 @@ import 'temperature_sensor_preset_card.dart';
 part 'heater_sensor_card.freezed.dart';
 part 'heater_sensor_card.g.dart';
 
-class HeaterSensorCard extends ConsumerWidget {
+class HeaterSensorCard extends StatelessWidget {
   const HeaterSensorCard({super.key, required this.machineUUID, this.trailing});
 
-  factory HeaterSensorCard.preview() {
+  static Widget preview() {
     return const _HeaterSensorCardPreview();
   }
 
@@ -60,7 +62,7 @@ class HeaterSensorCard extends ConsumerWidget {
   final Widget? trailing;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return AsyncGuard(
       animate: true,
       debugLabel: 'HeaterSensorCard-$machineUUID',
@@ -85,22 +87,53 @@ class HeaterSensorCard extends ConsumerWidget {
   }
 }
 
-class _HeaterSensorCardPreview extends HeaterSensorCard {
+class _HeaterSensorCardPreview extends StatefulWidget {
   static const String _machineUUID = 'preview';
 
-  const _HeaterSensorCardPreview({super.key}) : super(machineUUID: _machineUUID);
+  const _HeaterSensorCardPreview({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return ProviderScope(
+  State<_HeaterSensorCardPreview> createState() => _HeaterSensorCardPreviewState();
+}
+
+class _HeaterSensorCardPreviewState extends State<_HeaterSensorCardPreview> {
+  late final Widget s;
+
+  @override
+  void initState() {
+    super.initState();
+    s = ProviderScope(
       overrides: [
-        _controllerProvider(_machineUUID).overrideWith(_PreviewController.new),
-        printerProvider(_machineUUID).overrideWith((provider) => Stream.value(PrinterBuilder.preview().build())),
+        _controllerProvider(_HeaterSensorCardPreview._machineUUID).overrideWith(() {
+          return _PreviewController();
+        }),
+        printerProvider(_HeaterSensorCardPreview._machineUUID)
+            .overrideWith((provider) => Stream.value(PrinterBuilder.preview().build())),
       ],
-      child: Consumer(
-        builder: (innerContext, innerRef, _) => super.build(innerContext, innerRef),
-      ),
+      child: const HeaterSensorCard(machineUUID: _HeaterSensorCardPreview._machineUUID),
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+  }
+
+  @override
+  void didUpdateWidget(_HeaterSensorCardPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // super.build(context);
+
+    return s;
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 }
 
@@ -222,25 +255,31 @@ class _HeaterMixinTile extends HookConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: innerTheme.textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    '${numberFormat.format(heater.temperature)} °C',
-                    style: innerTheme.textTheme.titleLarge,
-                  ),
-                  Text(heater.target > 0
-                      ? 'pages.dashboard.general.temp_card.heater_on'.tr(
-                          args: [numberFormat.format(heater.target)],
-                        )
-                      : 'general.off'.tr()),
-                ],
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AutoSizeText(
+                      name,
+                      minFontSize: 8,
+                      style: innerTheme.textTheme.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '${numberFormat.format(heater.temperature)} °C',
+                      style: innerTheme.textTheme.titleLarge,
+                    ),
+                    Text(
+                      heater.target > 0
+                          ? 'pages.dashboard.general.temp_card.heater_on'.tr(
+                              args: [numberFormat.format(heater.target)],
+                            )
+                          : 'general.off'.tr(),
+                      style: innerTheme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
               ),
               AnimatedOpacity(
                 opacity: heater.temperature > _stillHotTemp ? 1 : 0,
@@ -280,27 +319,32 @@ class _TemperatureSensorTile extends HookConsumerWidget {
       plotSpots: spots.value,
       buttonChild: const Text('pages.dashboard.general.temp_card.btn_thermistor').tr(),
       onTap: null,
-      builder: (context) => Tooltip(
-        message: beautifiedNamed,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              beautifiedNamed,
-              style: Theme.of(context).textTheme.bodySmall,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              '${numberFormat.format(temperatureSensor.temperature)} °C',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            Text(
-              '${numberFormat.format(temperatureSensor.measuredMaxTemp)} °C max',
-            ),
-          ],
-        ),
-      ),
+      builder: (context) {
+        final themeData = Theme.of(context);
+        return Tooltip(
+          message: beautifiedNamed,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AutoSizeText(
+                beautifiedNamed,
+                minFontSize: 8,
+                style: themeData.textTheme.bodySmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                '${numberFormat.format(temperatureSensor.temperature)} °C',
+                style: themeData.textTheme.titleLarge,
+              ),
+              Text(
+                '${numberFormat.format(temperatureSensor.measuredMaxTemp)} °C max',
+                style: themeData.textTheme.bodySmall,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -339,35 +383,43 @@ class _TemperatureFanTile extends HookConsumerWidget {
       plotSpots: spots.value,
       buttonChild: const Text('general.set').tr(),
       onTap: klippyCanReceiveCommands ? () => controller.editTemperatureFan(temperatureFan) : null,
-      builder: (context) => Tooltip(
-        message: beautifiedNamed,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  beautifiedNamed,
-                  style: Theme.of(context).textTheme.bodySmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+      builder: (context) {
+        final themeData = Theme.of(context);
+        return Tooltip(
+          message: beautifiedNamed,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AutoSizeText(
+                      beautifiedNamed,
+                      minFontSize: 8,
+                      style: themeData.textTheme.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '${numberFormat.format(temperatureFan.temperature)} °C',
+                      style: themeData.textTheme.titleLarge,
+                    ),
+                    Text(
+                      'pages.dashboard.general.temp_card.heater_on'
+                          .tr(args: [numberFormat.format(temperatureFan.target)]),
+                      style: themeData.textTheme.bodySmall,
+                    ),
+                  ],
                 ),
-                Text(
-                  '${numberFormat.format(temperatureFan.temperature)} °C',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                Text(
-                  'pages.dashboard.general.temp_card.heater_on'.tr(args: [numberFormat.format(temperatureFan.target)]),
-                ),
-              ],
-            ),
-            temperatureFan.speed > 0
-                ? const SpinningFan(size: icoSize)
-                : const Icon(FlutterIcons.fan_off_mco, size: icoSize),
-          ],
-        ),
-      ),
+              ),
+              temperatureFan.speed > 0
+                  ? const SpinningFan(size: icoSize)
+                  : const Icon(FlutterIcons.fan_off_mco, size: icoSize),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -406,27 +458,31 @@ class _ZThermalAdjustTile extends HookConsumerWidget {
       plotSpots: spots.value,
       buttonChild: const Text('pages.dashboard.general.temp_card.btn_thermistor').tr(),
       onTap: null,
-      builder: (context) => Tooltip(
-        message: beautifiedNamed,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              beautifiedNamed,
-              style: Theme.of(context).textTheme.bodySmall,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              '${numberFormat.format(zThermalAdjust.temperature)} °C',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            Text(
-              zThermalAdjust.currentZAdjust.formatMiliMeters(numberFormat, true),
-            ),
-          ],
-        ),
-      ),
+      builder: (context) {
+        final themeData = Theme.of(context);
+        return Tooltip(
+          message: beautifiedNamed,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AutoSizeText(
+                beautifiedNamed,
+                minFontSize: 8,
+                style: themeData.textTheme.bodySmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                '${numberFormat.format(zThermalAdjust.temperature)} °C',
+                style: themeData.textTheme.titleLarge,
+              ),
+              Text(
+                numberFormat.formatMillimeters(zThermalAdjust.currentZAdjust, useMicro: true),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -517,9 +573,9 @@ class _Controller extends _$Controller {
       type: ref.read(settingServiceProvider).readBool(AppSettingKeys.defaultNumEditMode)
           ? DialogType.numEdit
           : DialogType.rangeEdit,
-      title: 'Edit ${beautifyName(heater.name)} Temperature',
-      cancelBtn: tr('general.cancel'),
-      confirmBtn: tr('general.confirm'),
+      title: tr('dialogs.heater_temperature.title', args: [beautifyName(heater.name)]),
+      dismissLabel: tr('general.cancel'),
+      actionLabel: tr('general.confirm'),
       data: NumberEditDialogArguments(
         current: heater.target,
         min: 0,
@@ -545,9 +601,7 @@ class _Controller extends _$Controller {
           type: ref.read(settingServiceProvider).readBool(AppSettingKeys.defaultNumEditMode)
               ? DialogType.numEdit
               : DialogType.rangeEdit,
-          title: 'Edit Temperature Fan ${beautifyName(temperatureFan.name)}',
-          cancelBtn: tr('general.cancel'),
-          confirmBtn: tr('general.confirm'),
+          title: tr('dialogs.heater_temperature.title', args: [beautifyName(temperatureFan.name)]),
           data: NumberEditDialogArguments(
             current: temperatureFan.target.round(),
             min: (configFan is ConfigTemperatureFan) ? configFan.minTemp : 0,
@@ -565,8 +619,12 @@ class _Controller extends _$Controller {
 class _PreviewController extends _Controller {
   @override
   Stream<_Model> build(String machineUUID) {
+    logger.i('Rebuilding (preview) HeaterSensorCard._PreviewController for machine $machineUUID');
+    ref.onDispose(() {
+      logger.i('Disposing (preview) HeaterSensorCard._PreviewController for machine $machineUUID');
+    });
     ref.keepAliveFor();
-    return Stream.value(_Model(
+    state = AsyncValue.data(_Model(
       klippyCanReceiveCommands: true,
       sensors: [
         Extruder(
@@ -584,6 +642,8 @@ class _PreviewController extends _Controller {
         )
       ],
     ));
+
+    return const Stream.empty();
   }
 
   @override

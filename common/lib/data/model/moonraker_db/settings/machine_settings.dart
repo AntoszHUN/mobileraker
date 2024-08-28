@@ -30,9 +30,42 @@ class MachineSettings extends StampedEntity {
     this.tempOrdering = const [],
     this.fanOrdering = const [],
     this.miscOrdering = const [],
+    this.filamentUnloadGCode,
+    this.filamentLoadGCode,
+    this.nozzleExtruderDistance = 100,
+    this.loadingSpeed = 5,
+    this.purgeLength = 15,
+    this.purgeSpeed = 2,
   }) : super(created, lastModified ?? DateTime.now());
 
-  MachineSettings.fallback() : this(created: DateTime.now(), lastModified: DateTime.now());
+  // Factory to get fallback
+  factory MachineSettings.fallback() {
+    final now = DateTime.now();
+    return MachineSettings(
+      created: now,
+      lastModified: now,
+      temperaturePresets: [
+        TemperaturePreset(
+          created: now,
+          name: 'PLA',
+          extruderTemp: 200,
+          bedTemp: 60,
+        ),
+        TemperaturePreset(
+          created: now,
+          name: 'PETG',
+          extruderTemp: 230,
+          bedTemp: 90,
+        ),
+        TemperaturePreset(
+          created: now,
+          name: 'ABS',
+          extruderTemp: 250,
+          bedTemp: 100,
+        ),
+      ],
+    );
+  }
 
   List<bool> inverts; // [X,Y,Z]
   int speedXY;
@@ -52,6 +85,16 @@ class MachineSettings extends StampedEntity {
 
   // Ordering of misc UI elements: Leds, Relays, FilamentSensors
   List<ReordableElement> miscOrdering;
+
+  // Filament loading and unloading operations
+  String? filamentLoadGCode;
+
+  String? filamentUnloadGCode;
+
+  int nozzleExtruderDistance;
+  double loadingSpeed;
+  int purgeLength;
+  double purgeSpeed;
 
   factory MachineSettings.fromJson(Map<String, dynamic> json) => _$MachineSettingsFromJson(json);
 
@@ -74,7 +117,13 @@ class MachineSettings extends StampedEntity {
           const DeepCollectionEquality().equals(other.temperaturePresets, temperaturePresets) &&
           const DeepCollectionEquality().equals(other.tempOrdering, tempOrdering) &&
           const DeepCollectionEquality().equals(other.fanOrdering, fanOrdering) &&
-          const DeepCollectionEquality().equals(other.miscOrdering, miscOrdering);
+          const DeepCollectionEquality().equals(other.miscOrdering, miscOrdering) &&
+          other.filamentLoadGCode == filamentLoadGCode &&
+          other.filamentUnloadGCode == filamentUnloadGCode &&
+          other.nozzleExtruderDistance == nozzleExtruderDistance &&
+          other.loadingSpeed == loadingSpeed &&
+          other.purgeLength == purgeLength &&
+          other.purgeSpeed == purgeSpeed;
 
   @override
   int get hashCode => Object.hash(
@@ -92,10 +141,16 @@ class MachineSettings extends StampedEntity {
         const DeepCollectionEquality().hash(tempOrdering),
         const DeepCollectionEquality().hash(fanOrdering),
         const DeepCollectionEquality().hash(miscOrdering),
+        filamentLoadGCode,
+        filamentUnloadGCode,
+        nozzleExtruderDistance,
+        loadingSpeed,
+        purgeLength,
+        purgeSpeed,
       );
 
   @override
   String toString() {
-    return 'MachineSettings{inverts: $inverts, speedXY: $speedXY, speedZ: $speedZ, extrudeFeedrate: $extrudeFeedrate, moveSteps: $moveSteps, babySteps: $babySteps, extrudeSteps: $extrudeSteps, macroGroups: $macroGroups, temperaturePresets: $temperaturePresets}';
+    return 'MachineSettings{inverts: $inverts, speedXY: $speedXY, speedZ: $speedZ, extrudeFeedrate: $extrudeFeedrate, moveSteps: $moveSteps, babySteps: $babySteps, extrudeSteps: $extrudeSteps, macroGroups: $macroGroups, temperaturePresets: $temperaturePresets, tempOrdering: $tempOrdering, fanOrdering: $fanOrdering, miscOrdering: $miscOrdering, filamentLoadGCode: $filamentLoadGCode, filamentUnloadGCode: $filamentUnloadGCode, nozzleExtruderDistance: $nozzleExtruderDistance, movingSpeed: $loadingSpeed, purgeLength: $purgeLength, purgeSpeed: $purgeSpeed}';
   }
 }

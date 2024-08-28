@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:common/util/extensions/dio_options_extension.dart';
+import 'package:common/util/extensions/string_extension.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -57,14 +58,13 @@ class JsonRpcClientBuilder {
   JsonRpcClientBuilder();
 
   factory JsonRpcClientBuilder.fromBaseOptions(BaseOptions options, Machine machine) {
-    var localWsUir = machine.wsUri;
     var baseURL = Uri.parse(options.baseUrl);
 
     var builder = JsonRpcClientBuilder()
       ..headers = options.headers
       ..clientType = options.clientType
       ..timeout = options.receiveTimeout ?? const Duration(seconds: 10)
-      ..uri = baseURL.replace(path: localWsUir.path, query: localWsUir.query).toWebsocketUri();
+      ..uri = baseURL.appendPath('websocket').toWebsocketUri();
 
     return builder;
   }
@@ -88,6 +88,8 @@ class JsonRpcClientBuilder {
 }
 
 class JsonRpcClient {
+  static const int pingInterval = 15;
+
   JsonRpcClient({
     required this.uri,
     this.headers = const {},
@@ -108,7 +110,7 @@ class JsonRpcClient {
 
   final HttpClient _httpClient;
 
-  Exception? errorReason;
+  Object? errorReason;
 
   bool get hasError => errorReason != null;
 
@@ -238,7 +240,7 @@ class JsonRpcClient {
     curState = ClientState.connecting;
     _resetChannel();
 
-    logger.i('$logPrefix Using headers $headers');
+    logger.i('$logPrefix Using headers $headersLogSafe');
     logger.i('$logPrefix Using timeout $timeout');
 
     // Since obico is not closing/terminating the websocket connection in case of statusCode errors like limit reached, we need to send a good old http request.
@@ -256,13 +258,25 @@ class JsonRpcClient {
       return false;
     }
 
-    final ioChannel = IOWebSocketChannel.connect(
-      uri,
-      headers: headers,
-      pingInterval: const Duration(seconds: 30),
-      connectTimeout: Duration(seconds: timeout.inSeconds + 2),
-      customClient: _httpClient,
-    );
+    final IOWebSocketChannel ioChannel;
+    try {
+      ioChannel = IOWebSocketChannel.connect(
+        uri,
+        headers: headers,
+        pingInterval: const Duration(seconds: pingInterval),
+        connectTimeout: timeout,
+        customClient: _httpClient,
+      );
+    } catch (e) {
+      if (e case StateError(message: "Client is closed")) {
+        logger.e('$logPrefix HTTPClient is closed, aborting opening of websocket');
+        //TODO: We need to get a new HttpClient here...
+      }
+
+      logger.e('$logPrefix Error while connecting IOWebSocketChannel: $e');
+      _updateError(e);
+      return false;
+    }
 
     _channel = ioChannel;
 
@@ -294,14 +308,21 @@ class JsonRpcClient {
     _channel?.sink.add(message);
   }
 
+  int _recivdBytes = 0;
+
   /// CB for called for each new message from the channel/ws
   _onChannelMessage(message) {
     Map<String, dynamic> result = jsonDecode(message);
     int? mId = result['id'];
     String? method = result['method'];
     Map<String, dynamic>? error = result['error'];
+    logger.d('$logPrefix @Rec (messageId: $mId, method: $method): $message');
 
-    logger.d('$logPrefix @Rec (messageId: $mId): $message');
+    if (kDebugMode) {
+      final int messageLength = message.length;
+      _recivdBytes += messageLength;
+      // logger.i('$logPrefix ${message.length}@Rec  (Total: $_recivdBytes) (messageId: $mId, method: $method)');
+    }
 
     if (method != null) {
       _methodListeners[method]?.forEach((e) => e(result));
@@ -450,10 +471,14 @@ class JsonRpcClient {
 
     _resetChannel();
     _stateStream.close();
+    _httpClient.close();
     logger.i('$logPrefix JsonRpcClient disposed!');
   }
 
   String get logPrefix => '[$clientType@${uri.obfuscate()} #${identityHashCode(this)}]';
+
+  String get headersLogSafe =>
+      '{${headers.entries.map((e) => '${e.key}: ${e.value.toString().obfuscate(5)}').join(', ')}}';
 
   @override
   bool operator ==(Object other) =>
